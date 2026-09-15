@@ -27,7 +27,7 @@ const TEN = BigInt(10);
  * Converts a 2-decimal percentage string (e.g. "42.50") into hundredths of a
  * percentage point as a `bigint` (`4250`). The conic-gradient arc
  * boundaries below are computed with exact integer arithmetic on this value
- * — never `Number()`/`parseFloat()` (AC30 applies to every string field
+ * — never JS numeric coercion (AC30 applies to every string field
  * rendered on this page, not only `formatMoney`-formatted ones).
  */
 function toHundredths(percentage: string): bigint {

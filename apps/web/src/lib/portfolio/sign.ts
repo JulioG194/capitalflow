@@ -3,7 +3,7 @@ export type Sign = "negative" | "zero" | "positive";
 /**
  * Classifies a signed decimal-string field (e.g. `totalProfit`, `roiPercent`,
  * `unrealizedProfit`/`unrealizedProfitPercent`) as negative/zero/positive
- * purely by inspecting its string form — never via `Number()`/`parseFloat()`
+ * purely by inspecting its string form — never via JS numeric coercion
  * (AC30 applies to every string field rendered on this page, not only
  * `formatMoney`-formatted ones). These fields are always emitted by the API
  * with a leading `-` for negative values and no leading sign otherwise (spec

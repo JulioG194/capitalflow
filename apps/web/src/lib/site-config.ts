@@ -42,6 +42,14 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/about", label: "Nosotros" },
 ];
 
+/** Authenticated platform nav (`/app/*`). Distinct from marketing `NAV_LINKS`. */
+export const APP_NAV_LINKS: NavLink[] = [
+  { href: "/app/market", label: "Mercado" },
+  { href: "/app/portfolio", label: "Mi cartera" },
+  { href: "/app/invest", label: "Invertir" },
+  { href: "/app/profile", label: "Perfil" },
+];
+
 export const LEGAL_LINKS: NavLink[] = [
   { href: "/terms", label: "Términos de servicio" },
   { href: "/privacy", label: "Privacidad" },

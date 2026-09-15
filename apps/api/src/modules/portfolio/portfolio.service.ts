@@ -3,6 +3,7 @@ import {
   SYMBOL_ASSET_CLASS,
   type AllocationSliceDto,
   type AssetClass,
+  type HoldingDto,
   type PortfolioSummaryDto,
 } from '@capitalflow/shared-types';
 import { Prisma } from '../../../generated/prisma/client.js';
@@ -84,6 +85,39 @@ export class PortfolioService {
       roiPercent,
       allocation,
       asOf: new Date().toISOString(),
+    };
+  }
+
+  /** AC12: sorted by marketValue descending; empty array when no holdings. */
+  async getHoldings(userId: string): Promise<HoldingDto[]> {
+    const portfolio = await this.findPortfolioOrThrow(userId);
+    const holdings = await this.prisma.holding.findMany({
+      where: { portfolioId: portfolio.id },
+    });
+    const valued = await this.valuateHoldings(holdings);
+
+    return [...valued]
+      .sort((a, b) => b.marketValue.comparedTo(a.marketValue))
+      .map((holding) => this.toHoldingDto(holding));
+  }
+
+  private toHoldingDto(holding: ValuedHolding): HoldingDto {
+    const costBasis = holding.quantity.times(holding.averagePrice);
+    const unrealizedProfit = holding.marketValue.minus(costBasis);
+    const unrealizedProfitPercent = costBasis.isZero()
+      ? '0.00'
+      : this.formatSigned(unrealizedProfit.dividedBy(costBasis).times(100));
+
+    return {
+      symbol: holding.symbol,
+      assetClass: holding.assetClass,
+      quantity: holding.quantity.toString(),
+      averagePrice: holding.averagePrice.toFixed(2),
+      currentPrice: holding.currentPrice.toFixed(2),
+      isPriceStale: holding.isPriceStale,
+      marketValue: holding.marketValue.toFixed(2),
+      unrealizedProfit: this.formatSigned(unrealizedProfit),
+      unrealizedProfitPercent,
     };
   }
 

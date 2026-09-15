@@ -133,4 +133,40 @@ describe('Portfolio (e2e)', () => {
       );
     });
   });
+
+  describe('GET /portfolio/holdings', () => {
+    it('AC12: returns an empty array (not 404) for a freshly registered user with no holdings', async () => {
+      const email = `holdings-ac12-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      const accessToken = await registerAndLogin(email);
+
+      const response = await request(app.getHttpServer())
+        .get('/portfolio/holdings')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual([]);
+    });
+
+    it('AC11: rejects a request with no access token with 401', async () => {
+      await request(app.getHttpServer()).get('/portfolio/holdings').expect(401);
+    });
+
+    it('AC10: responds 404 PORTFOLIO_NOT_FOUND when the authenticated user has no Portfolio row', async () => {
+      const email = `holdings-ac10-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      const accessToken = await registerAndLogin(email);
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      await prisma.portfolio.delete({ where: { userId: user.id } });
+
+      const response = await request(app.getHttpServer())
+        .get('/portfolio/holdings')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404);
+
+      expect((response.body as ErrorResponseBody).code).toBe(
+        'PORTFOLIO_NOT_FOUND',
+      );
+    });
+  });
 });

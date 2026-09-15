@@ -1,5 +1,8 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import type { PortfolioSummaryDto } from '@capitalflow/shared-types';
+import type {
+  HoldingDto,
+  PortfolioSummaryDto,
+} from '@capitalflow/shared-types';
 import {
   AccessTokenGuard,
   type RequestWithUser,
@@ -15,5 +18,10 @@ export class PortfolioController {
   @Get()
   getSummary(@Req() req: RequestWithUser): Promise<PortfolioSummaryDto> {
     return this.portfolioService.getSummary(req.user.sub);
+  }
+
+  @Get('holdings')
+  getHoldings(@Req() req: RequestWithUser): Promise<HoldingDto[]> {
+    return this.portfolioService.getHoldings(req.user.sub);
   }
 }

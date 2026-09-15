@@ -253,4 +253,98 @@ describe('PortfolioService', () => {
       ).rejects.toBeInstanceOf(PortfolioNotFoundException);
     });
   });
+
+  describe('getHoldings', () => {
+    it('AC12: returns a bare array sorted by marketValue descending', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.holding.findMany.mockResolvedValue([
+        holdingRecord({
+          symbol: 'AAPL',
+          quantity: new Prisma.Decimal('1'),
+          averagePrice: new Prisma.Decimal('100.00'),
+        }),
+        holdingRecord({
+          symbol: 'SPY',
+          quantity: new Prisma.Decimal('10'),
+          averagePrice: new Prisma.Decimal('50.00'),
+        }),
+      ]);
+      redis.get.mockResolvedValue(null);
+
+      const result = await service.getHoldings('user-1');
+
+      expect(result.map((h) => h.symbol)).toEqual(['SPY', 'AAPL']);
+    });
+
+    it('AC12: returns an empty array (not 404) when there are no holdings', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.holding.findMany.mockResolvedValue([]);
+
+      const result = await service.getHoldings('user-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('AC13: uses the fresh cached price and marks isPriceStale false on a cache hit', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.holding.findMany.mockResolvedValue([
+        holdingRecord({
+          symbol: 'AAPL',
+          quantity: new Prisma.Decimal('10'),
+          averagePrice: new Prisma.Decimal('150.00'),
+        }),
+      ]);
+      redis.get.mockResolvedValue(JSON.stringify({ price: '200.00' }));
+
+      const [holding] = await service.getHoldings('user-1');
+
+      expect(holding?.currentPrice).toBe('200.00');
+      expect(holding?.isPriceStale).toBe(false);
+      expect(holding?.marketValue).toBe('2000.00');
+    });
+
+    it.each([
+      ['a cache miss', null],
+      ['a malformed cache entry', 'not-json'],
+      ['an entry with no price field', JSON.stringify({ timestamp: 'x' })],
+    ])(
+      'AC14: falls back to averagePrice and marks isPriceStale true on %s',
+      async (_label, cachedValue) => {
+        prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+        prisma.holding.findMany.mockResolvedValue([
+          holdingRecord({
+            symbol: 'AAPL',
+            quantity: new Prisma.Decimal('10'),
+            averagePrice: new Prisma.Decimal('150.00'),
+          }),
+        ]);
+        redis.get.mockResolvedValue(cachedValue);
+
+        const [holding] = await service.getHoldings('user-1');
+
+        expect(holding?.currentPrice).toBe('150.00');
+        expect(holding?.isPriceStale).toBe(true);
+      },
+    );
+
+    it('AC15: resolves an unmapped symbol to assetClass "other" instead of throwing', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.holding.findMany.mockResolvedValue([
+        holdingRecord({ symbol: 'UNKNOWN_SYMBOL' }),
+      ]);
+      redis.get.mockResolvedValue(null);
+
+      const [holding] = await service.getHoldings('user-1');
+
+      expect(holding?.assetClass).toBe('other');
+    });
+
+    it('AC10: throws PortfolioNotFoundException when the user has no Portfolio row', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getHoldings('user-without-portfolio'),
+      ).rejects.toBeInstanceOf(PortfolioNotFoundException);
+    });
+  });
 });

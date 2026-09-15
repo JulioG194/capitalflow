@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ThrottlerGuard,
+  ThrottlerStorage,
+  ThrottlerStorageService,
+} from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -36,6 +41,13 @@ describe('Auth (e2e)', () => {
     })
       .overrideProvider(EmailService)
       .useValue({ sendPasswordResetEmail })
+      // This shared app instance is reused by every describe block below,
+      // many of which log in far more than the real AC30 threshold (5/min)
+      // as part of their own setup — real throttling behavior is instead
+      // exercised in its own isolated app instance, see the dedicated
+      // "POST /auth/login rate limiting" describe block.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -783,5 +795,80 @@ describe('Auth (e2e)', () => {
         .send({})
         .expect(400);
     });
+  });
+});
+
+describe('POST /auth/login rate limiting (AC30/AC31)', () => {
+  // Deliberately its own app instance (real, un-overridden ThrottlerGuard)
+  // so the shared app above — which many other tests log in against far
+  // more than this threshold as part of their own setup — doesn't have to
+  // be throttling-aware.
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  const registeredEmails: string[] = [];
+  const loginLimit = Number(process.env.LOGIN_RATE_LIMIT_MAX ?? '5');
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+    app.useGlobalFilters(new PrismaExceptionFilter());
+    await app.init();
+
+    prisma = app.get(PrismaService);
+  });
+
+  afterAll(async () => {
+    if (registeredEmails.length > 0) {
+      await prisma.user.deleteMany({
+        where: { email: { in: registeredEmails } },
+      });
+    }
+    await app.close();
+  });
+
+  it('AC30: the request beyond the configured per-IP limit within the window gets 429 + Retry-After; AC31: a subsequent request after the window resets processes normally', async () => {
+    const email = `ratelimit-${Date.now()}@example.com`;
+    const password = 'correcthorse1';
+    registeredEmails.push(email);
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email, password, name: 'Rate Limit Fixture' })
+      .expect(201);
+
+    for (let i = 0; i < loginLimit; i += 1) {
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+    }
+
+    const throttledResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(429);
+    expect(throttledResponse.headers['retry-after']).toBeDefined();
+
+    // AC31: simulate the rolling window having elapsed (rather than a real
+    // multi-second sleep) by clearing the in-memory throttler storage this
+    // isolated app instance owns — a subsequent request is then processed
+    // normally again.
+    const storage = app.get<ThrottlerStorageService>(ThrottlerStorage);
+    storage.storage.clear();
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
   });
 });

@@ -8,6 +8,16 @@ import type { EnvConfig } from './config/env.schema';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService<EnvConfig, true>);
+
+  // Credentialed cross-origin requests (the refresh cookie, sent via
+  // `fetch(..., { credentials: "include" })` from apps/web) require an
+  // explicit origin — `credentials: true` is incompatible with the
+  // wildcard `*` origin CORS otherwise defaults to.
+  app.enableCors({
+    origin: configService.get('WEB_APP_ORIGIN', { infer: true }),
+    credentials: true,
+  });
 
   app.use(cookieParser());
 
@@ -20,7 +30,6 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new PrismaExceptionFilter());
 
-  const configService = app.get(ConfigService<EnvConfig, true>);
   await app.listen(configService.get('PORT', { infer: true }));
 }
 

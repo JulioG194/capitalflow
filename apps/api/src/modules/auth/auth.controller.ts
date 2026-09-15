@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   AUTH_REFRESH_COOKIE_NAME,
@@ -75,9 +76,16 @@ export class AuthController {
    * AC6/AC11: responds with the access token in the JSON body and sets the
    * raw refresh token only as an `HttpOnly` cookie — it is never present in
    * the response body.
+   *
+   * AC30/AC31: rate-limited via the module-level `ThrottlerModule` config
+   * (5 requests/60s/IP by default, from `LOGIN_RATE_LIMIT_MAX`/
+   * `LOGIN_RATE_LIMIT_WINDOW_SECONDS`) — `ThrottlerGuard` is applied only
+   * to this one method, not globally, and sets `Retry-After` on the
+   * throttled response itself.
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   async login(
     @Body(new ZodValidationPipe(loginBodySchema)) body: LoginDto,
     @Res({ passthrough: true }) res: Response,

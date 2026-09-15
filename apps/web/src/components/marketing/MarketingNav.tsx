@@ -33,8 +33,12 @@ export function MarketingNav() {
         <ul className="hidden items-center gap-6 md:flex">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
+              {/* prefetch={false}: these are secondary destinations always
+                  visible above the fold; not prefetching them keeps initial
+                  bandwidth free for the hero image/fonts (AC18 LCP budget). */}
               <Link
                 href={link.href}
+                prefetch={false}
                 className="text-sm font-medium text-ink-muted hover:text-ink"
               >
                 {link.label}
@@ -46,6 +50,7 @@ export function MarketingNav() {
         <div className="hidden items-center gap-4 md:flex">
           <Link
             href="/login"
+            prefetch={false}
             className="text-sm font-medium text-ink hover:text-brand-600"
           >
             Iniciar sesión

@@ -10,15 +10,13 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Single theme for v1 (spec 001 §5): the marketing site's Tailwind color
+   tokens (text-ink, bg-white, etc.) are only defined for a light background.
+   A prefers-color-scheme dark override here without also swapping every
+   component's color classes would break WCAG AA contrast (AC22), so dark
+   mode is intentionally not enabled until a real dark palette exists. */
 
 body {
   background: var(--background);

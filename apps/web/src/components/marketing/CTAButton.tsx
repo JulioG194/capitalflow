@@ -6,6 +6,10 @@ type CTAButtonProps = {
   children: ReactNode;
   variant?: "primary" | "secondary";
   className?: string;
+  /** Set false for above-the-fold secondary CTAs to reduce initial network
+   * contention with the LCP resource on slow connections (AC18). Defaults
+   * to Next's normal viewport prefetch behavior. */
+  prefetch?: boolean;
 };
 
 /**
@@ -18,6 +22,7 @@ export function CTAButton({
   children,
   variant = "primary",
   className = "",
+  prefetch,
 }: CTAButtonProps) {
   const base =
     "inline-flex items-center justify-center rounded-card px-5 py-2.5 text-sm font-semibold transition-colors";
@@ -28,7 +33,11 @@ export function CTAButton({
   };
 
   return (
-    <Link href={href} className={`${base} ${variants[variant]} ${className}`}>
+    <Link
+      href={href}
+      prefetch={prefetch}
+      className={`${base} ${variants[variant]} ${className}`}
+    >
       {children}
     </Link>
   );

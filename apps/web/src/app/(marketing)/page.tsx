@@ -67,7 +67,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap gap-4">
             <CTAButton href="/register">Registrarse gratis</CTAButton>
-            <CTAButton href="/how-it-works" variant="secondary">
+            <CTAButton href="/how-it-works" variant="secondary" prefetch={false}>
               Ver cómo funciona
             </CTAButton>
           </div>

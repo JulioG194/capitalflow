@@ -1,8 +1,9 @@
 # Spec 002: Authentication & User Accounts
 
-**Status**: draft
+**Status**: implemented
 **Author**: Julio
 **Created**: 2026-09-14
+**Implemented**: 2026-09-15
 **Related specs**: 001-landing-seo (CTAs link here), 006-deployment (future: real email provider adapter)
 
 ## 1. Context & Motivation
@@ -28,51 +29,51 @@ this system will be publicly reachable on the internet as a portfolio artifact.
 ## 3. Acceptance Criteria
 
 ### Registration
-- [ ] **AC1**: Given a `POST /auth/register` with a valid unique email, a password meeting the complexity rules, and a name, when the request is processed, then the API creates a user record with an Argon2id password hash (the plaintext password is never persisted or logged) and responds `201` with the created user's `id`, `email`, `name`, and `createdAt` (no password hash, no tokens issued).
-- [ ] **AC2**: Given a `POST /auth/register` with an email that already exists (case-insensitive match), when the request is processed, then the API responds `409 Conflict` with a domain error code (e.g. `EMAIL_ALREADY_EXISTS`) and no duplicate record is created.
-- [ ] **AC3**: Given a `POST /auth/register` with a password shorter than 10 characters, or missing a letter, or missing a number, when the request is processed, then the API responds `400 Bad Request` with field-level validation errors and no user is created.
-- [ ] **AC4**: Given a `POST /auth/register` with an email in mixed case (e.g. `User@Example.com`), when the record is created, then the stored email is normalized to lowercase, and subsequent lookups (login, forgot-password) are case-insensitive on email.
-- [ ] **AC5**: Given a `POST /auth/register` with extra/unexpected fields (e.g. `{"role":"admin"}`), when the request is processed, then the global `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`) rejects the request and no such field is persisted.
+- [x] **AC1**: Given a `POST /auth/register` with a valid unique email, a password meeting the complexity rules, and a name, when the request is processed, then the API creates a user record with an Argon2id password hash (the plaintext password is never persisted or logged) and responds `201` with the created user's `id`, `email`, `name`, and `createdAt` (no password hash, no tokens issued).
+- [x] **AC2**: Given a `POST /auth/register` with an email that already exists (case-insensitive match), when the request is processed, then the API responds `409 Conflict` with a domain error code (e.g. `EMAIL_ALREADY_EXISTS`) and no duplicate record is created.
+- [x] **AC3**: Given a `POST /auth/register` with a password shorter than 10 characters, or missing a letter, or missing a number, when the request is processed, then the API responds `400 Bad Request` with field-level validation errors and no user is created.
+- [x] **AC4**: Given a `POST /auth/register` with an email in mixed case (e.g. `User@Example.com`), when the record is created, then the stored email is normalized to lowercase, and subsequent lookups (login, forgot-password) are case-insensitive on email.
+- [x] **AC5**: Given a `POST /auth/register` with extra/unexpected fields (e.g. `{"role":"admin"}`), when the request is processed, then the global `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`) rejects the request and no such field is persisted.
 
 ### Login
-- [ ] **AC6**: Given a `POST /auth/login` with correct email and password, when the request is processed, then the API responds `200` with a short-lived access token (JWT, RS256, 15-minute expiry) in the response body and sets an `HttpOnly` refresh-token cookie (7-day expiry, scoped to the `/auth` path — see the note under AC33 for why this is `/auth` rather than `/auth/refresh`).
-- [ ] **AC7**: Given a `POST /auth/login` with a correct email but an incorrect password, when the request is processed, then the API responds `401 Unauthorized` with a generic message that does not indicate the password (specifically) was wrong.
-- [ ] **AC8**: Given a `POST /auth/login` with an email that does not exist, when the request is processed, then the API responds with the identical status code and message body as AC7 — indistinguishable from a wrong-password response.
-- [ ] **AC9**: Given the non-existent-email path (AC8), when a login attempt is processed, then the service performs a dummy Argon2id hash comparison against a fixed reference hash before responding, so the code path does the same computational work as the existing-user path (mitigates timing-based user enumeration).
-- [ ] **AC10**: Given a successful login, when the issued access token is decoded, then it contains at minimum `sub` (user id), `email`, `iat`, and `exp` claims and its signature verifies against the API's RS256 public key.
-- [ ] **AC11**: Given a successful login response, when the JSON body is inspected, then the raw refresh token is never present in it (it exists only as the `HttpOnly` cookie value).
+- [x] **AC6**: Given a `POST /auth/login` with correct email and password, when the request is processed, then the API responds `200` with a short-lived access token (JWT, RS256, 15-minute expiry) in the response body and sets an `HttpOnly` refresh-token cookie (7-day expiry, scoped to the `/auth` path — see the note under AC33 for why this is `/auth` rather than `/auth/refresh`).
+- [x] **AC7**: Given a `POST /auth/login` with a correct email but an incorrect password, when the request is processed, then the API responds `401 Unauthorized` with a generic message that does not indicate the password (specifically) was wrong.
+- [x] **AC8**: Given a `POST /auth/login` with an email that does not exist, when the request is processed, then the API responds with the identical status code and message body as AC7 — indistinguishable from a wrong-password response.
+- [x] **AC9**: Given the non-existent-email path (AC8), when a login attempt is processed, then the service performs a dummy Argon2id hash comparison against a fixed reference hash before responding, so the code path does the same computational work as the existing-user path (mitigates timing-based user enumeration).
+- [x] **AC10**: Given a successful login, when the issued access token is decoded, then it contains at minimum `sub` (user id), `email`, `iat`, and `exp` claims and its signature verifies against the API's RS256 public key.
+- [x] **AC11**: Given a successful login response, when the JSON body is inspected, then the raw refresh token is never present in it (it exists only as the `HttpOnly` cookie value).
 
 ### Token Refresh & Reuse Detection
-- [ ] **AC12**: Given a valid, unexpired, not-yet-used refresh token cookie, when `POST /auth/refresh` is called, then the API responds `200` with a new access token, marks the presented refresh token as revoked/rotated, issues a new refresh token, and sets it as the new `HttpOnly` cookie.
-- [ ] **AC13**: Given an expired refresh token cookie, when `POST /auth/refresh` is called, then the API responds `401 Unauthorized` and clears the refresh cookie.
-- [ ] **AC14**: Given a refresh token that was already rotated (used exactly once previously) and is presented again ("replay"), when `POST /auth/refresh` is called, then the API detects the reuse, revokes **all** refresh tokens belonging to that user, responds `401 Unauthorized`, and clears the cookie.
-- [ ] **AC15**: Given a user whose tokens were revoked via AC14, when that user's previously issued access token subsequently expires, then no refresh token they hold can produce a new session — they must complete a fresh `POST /auth/login`.
-- [ ] **AC16**: Given two near-simultaneous `POST /auth/refresh` requests presenting the same valid refresh token (race condition), when both are processed, then at most one succeeds with a new token pair and the other is treated as a reuse, triggering the full revocation described in AC14.
-- [ ] **AC17**: Given a `POST /auth/refresh` request with no refresh cookie present, when the request is processed, then the API responds `401 Unauthorized` without performing a database lookup that could leak timing information about token validity.
+- [x] **AC12**: Given a valid, unexpired, not-yet-used refresh token cookie, when `POST /auth/refresh` is called, then the API responds `200` with a new access token, marks the presented refresh token as revoked/rotated, issues a new refresh token, and sets it as the new `HttpOnly` cookie.
+- [x] **AC13**: Given an expired refresh token cookie, when `POST /auth/refresh` is called, then the API responds `401 Unauthorized` and clears the refresh cookie.
+- [x] **AC14**: Given a refresh token that was already rotated (used exactly once previously) and is presented again ("replay"), when `POST /auth/refresh` is called, then the API detects the reuse, revokes **all** refresh tokens belonging to that user, responds `401 Unauthorized`, and clears the cookie.
+- [x] **AC15**: Given a user whose tokens were revoked via AC14, when that user's previously issued access token subsequently expires, then no refresh token they hold can produce a new session — they must complete a fresh `POST /auth/login`.
+- [x] **AC16**: Given two near-simultaneous `POST /auth/refresh` requests presenting the same valid refresh token (race condition), when both are processed, then at most one succeeds with a new token pair and the other is treated as a reuse, triggering the full revocation described in AC14.
+- [x] **AC17**: Given a `POST /auth/refresh` request with no refresh cookie present, when the request is processed, then the API responds `401 Unauthorized` without performing a database lookup that could leak timing information about token validity.
 
 ### Logout
-- [ ] **AC18**: Given an authenticated session with a valid refresh cookie, when `POST /auth/logout` is called, then the API revokes that refresh token, clears the refresh cookie, and responds `200`.
-- [ ] **AC19**: Given `POST /auth/logout` is called with no refresh cookie or an already-revoked one, when processed, then the API responds `200` (idempotent) and does not leak whether a session existed.
+- [x] **AC18**: Given an authenticated session with a valid refresh cookie, when `POST /auth/logout` is called, then the API revokes that refresh token, clears the refresh cookie, and responds `200`.
+- [x] **AC19**: Given `POST /auth/logout` is called with no refresh cookie or an already-revoked one, when processed, then the API responds `200` (idempotent) and does not leak whether a session existed.
 
 ### Password Reset
-- [ ] **AC20**: Given `POST /auth/forgot-password` with an email that exists, when processed, then the API generates a single-use, time-limited reset token, persists only a hashed representation of it, invokes `EmailService` to "send" a reset link containing the raw token, and responds `200` with a generic message (e.g. "If that email exists, a reset link has been sent").
-- [ ] **AC21**: Given `POST /auth/forgot-password` with an email that does not exist, when processed, then the API responds `200` with the identical generic message as AC20, and `EmailService` is not invoked.
-- [ ] **AC22**: Given a valid, unexpired, unused reset token, when `POST /auth/reset-password` is called with that token and a new password meeting the complexity rules, then the API updates the user's password hash, marks the reset token as used, revokes all existing refresh tokens for that user (forces re-login on every device), and responds `200`.
-- [ ] **AC23**: Given an expired or already-used reset token, when `POST /auth/reset-password` is called, then the API responds `400 Bad Request` with a generic "invalid or expired token" message that does not reveal which of the two conditions applied.
-- [ ] **AC24**: Given a new password that fails the complexity rules on `POST /auth/reset-password`, when processed, then the API responds `400` with field-level validation errors and the reset token is **not** consumed (it remains usable until it legitimately expires).
-- [ ] **AC25**: Given a reset token whose configured expiry window (documented in section 4) has elapsed, when it is presented to `POST /auth/reset-password`, then the request is rejected per AC23.
+- [x] **AC20**: Given `POST /auth/forgot-password` with an email that exists, when processed, then the API generates a single-use, time-limited reset token, persists only a hashed representation of it, invokes `EmailService` to "send" a reset link containing the raw token, and responds `200` with a generic message (e.g. "If that email exists, a reset link has been sent").
+- [x] **AC21**: Given `POST /auth/forgot-password` with an email that does not exist, when processed, then the API responds `200` with the identical generic message as AC20, and `EmailService` is not invoked.
+- [x] **AC22**: Given a valid, unexpired, unused reset token, when `POST /auth/reset-password` is called with that token and a new password meeting the complexity rules, then the API updates the user's password hash, marks the reset token as used, revokes all existing refresh tokens for that user (forces re-login on every device), and responds `200`.
+- [x] **AC23**: Given an expired or already-used reset token, when `POST /auth/reset-password` is called, then the API responds `400 Bad Request` with a generic "invalid or expired token" message that does not reveal which of the two conditions applied.
+- [x] **AC24**: Given a new password that fails the complexity rules on `POST /auth/reset-password`, when processed, then the API responds `400` with field-level validation errors and the reset token is **not** consumed (it remains usable until it legitimately expires).
+- [x] **AC25**: Given a reset token whose configured expiry window (documented in section 4) has elapsed, when it is presented to `POST /auth/reset-password`, then the request is rejected per AC23.
 
 ### Profile
-- [ ] **AC26**: Given a valid access token, when `GET /auth/me` is called, then the API responds `200` with the authenticated user's `id`, `email`, `name`, and `createdAt` (no password hash, no tokens).
-- [ ] **AC27**: Given a missing, malformed, or expired access token, when `GET /auth/me` is called, then the API responds `401 Unauthorized`.
-- [ ] **AC28**: Given a valid access token and a `PATCH /auth/me` body containing a new `name`, when processed, then the API updates the user's name and responds `200` with the updated profile.
-- [ ] **AC29**: Given a valid access token and a `PATCH /auth/me` body attempting to set `email` or `password`, when processed, then the API rejects those fields (whitelist validation; only `name` is a permitted field on this endpoint) — email changes and password changes are not handled by this endpoint (password changes happen only via the reset-password flow in this spec).
+- [x] **AC26**: Given a valid access token, when `GET /auth/me` is called, then the API responds `200` with the authenticated user's `id`, `email`, `name`, and `createdAt` (no password hash, no tokens).
+- [x] **AC27**: Given a missing, malformed, or expired access token, when `GET /auth/me` is called, then the API responds `401 Unauthorized`.
+- [x] **AC28**: Given a valid access token and a `PATCH /auth/me` body containing a new `name`, when processed, then the API updates the user's name and responds `200` with the updated profile.
+- [x] **AC29**: Given a valid access token and a `PATCH /auth/me` body attempting to set `email` or `password`, when processed, then the API rejects those fields (whitelist validation; only `name` is a permitted field on this endpoint) — email changes and password changes are not handled by this endpoint (password changes happen only via the reset-password flow in this spec).
 
 ### Rate Limiting & Security
-- [ ] **AC30**: Given 5 `POST /auth/login` requests from the same IP within a rolling 60-second window, when a 6th request is made within that window, then the API responds `429 Too Many Requests` with a `Retry-After` header.
-- [ ] **AC31**: Given the rate-limit window has elapsed since the last throttled response, when a subsequent login request is made from the same IP, then the API processes it normally.
-- [ ] **AC32**: Given any error response from an `/auth/*` endpoint, when the response body is inspected, then it never contains a raw Prisma error message, stack trace, or SQL detail (all persistence errors are mapped to domain exceptions via an exception filter before reaching the client).
-- [ ] **AC33**: Given the refresh-token cookie set by the API, when inspected, then it carries `HttpOnly`, `Secure` (in production), and `SameSite=Strict` or `Lax` attributes, and is scoped to the `/auth` path so it is not transmitted on unrelated (non-auth) requests.
+- [x] **AC30**: Given 5 `POST /auth/login` requests from the same IP within a rolling 60-second window, when a 6th request is made within that window, then the API responds `429 Too Many Requests` with a `Retry-After` header.
+- [x] **AC31**: Given the rate-limit window has elapsed since the last throttled response, when a subsequent login request is made from the same IP, then the API processes it normally.
+- [x] **AC32**: Given any error response from an `/auth/*` endpoint, when the response body is inspected, then it never contains a raw Prisma error message, stack trace, or SQL detail (all persistence errors are mapped to domain exceptions via an exception filter before reaching the client).
+- [x] **AC33**: Given the refresh-token cookie set by the API, when inspected, then it carries `HttpOnly`, `Secure` (in production), and `SameSite=Strict` or `Lax` attributes, and is scoped to the `/auth` path so it is not transmitted on unrelated (non-auth) requests.
 
   > **Implementation note (corrected during spec 002 implementation):** this
   > was originally written as `/auth/refresh`. That literal scope is
@@ -92,14 +93,14 @@ this system will be publicly reachable on the internet as a portfolio artifact.
   > different — see the implementation note under AC39 for why.
 
 ### Email Service Abstraction
-- [ ] **AC34**: Given the `EmailService` interface, when the forgot-password flow triggers a send, then the concrete adapter used in this spec logs the recipient, subject, and reset link to the server log/console instead of dispatching a real email.
-- [ ] **AC35**: Given `EmailService` is injected via NestJS dependency injection (an abstract interface/token, not a concrete class reference), when a future spec (006) supplies a real provider adapter, then no changes are required to `AuthService` or any controller.
+- [x] **AC34**: Given the `EmailService` interface, when the forgot-password flow triggers a send, then the concrete adapter used in this spec logs the recipient, subject, and reset link to the server log/console instead of dispatching a real email.
+- [x] **AC35**: Given `EmailService` is injected via NestJS dependency injection (an abstract interface/token, not a concrete class reference), when a future spec (006) supplies a real provider adapter, then no changes are required to `AuthService` or any controller.
 
 ### Frontend Pages & Middleware
-- [ ] **AC36**: Given an unauthenticated visitor, when they navigate to `/register`, `/login`, `/forgot-password`, or `/reset-password`, then the corresponding form renders using `react-hook-form` with its zod resolver bound to the matching schema imported from `@capitalflow/shared-types`.
-- [ ] **AC37**: Given a user submits the login form with invalid input (e.g. empty password), when the form is submitted, then client-side validation displays field errors and no network request is sent to the API.
-- [ ] **AC38**: Given a user submits valid login credentials but the API responds `401`, when the response is received, then the UI displays a single generic authentication-failure message (not the raw API error text) and does not indicate whether the email exists.
-- [ ] **AC39**: Given an unauthenticated request (no valid refresh-token cookie present) to any route under `/app/*`, when Next.js middleware inspects the request server-side, then it redirects to `/login`, preserving the originally requested path as a `redirect` query parameter.
+- [x] **AC36**: Given an unauthenticated visitor, when they navigate to `/register`, `/login`, `/forgot-password`, or `/reset-password`, then the corresponding form renders using `react-hook-form` with its zod resolver bound to the matching schema imported from `@capitalflow/shared-types`.
+- [x] **AC37**: Given a user submits the login form with invalid input (e.g. empty password), when the form is submitted, then client-side validation displays field errors and no network request is sent to the API.
+- [x] **AC38**: Given a user submits valid login credentials but the API responds `401`, when the response is received, then the UI displays a single generic authentication-failure message (not the raw API error text) and does not indicate whether the email exists.
+- [x] **AC39**: Given an unauthenticated request (no valid refresh-token cookie present) to any route under `/app/*`, when Next.js middleware inspects the request server-side, then it redirects to `/login`, preserving the originally requested path as a `redirect` query parameter.
 
   > **Implementation note (added post-implementation, after a Playwright
   > e2e run against a real browser surfaced the bug):** the wording above
@@ -132,13 +133,13 @@ this system will be publicly reachable on the internet as a portfolio artifact.
   > request reach an `/app/*` page; every real data/API call from that page
   > still requires a genuinely valid access token and, on refresh, the
   > real `Path=/auth`-scoped refresh cookie.
-- [ ] **AC40**: Given an authenticated user, when they navigate to `/app/profile`, then the page displays their current `name` and `email`, and provides a form (using the shared update-profile schema) to edit `name`.
-- [ ] **AC41**: Given a successful login, when the frontend handles the response, then the access token is held only in memory (e.g. React context/state) — never written to `localStorage`, `sessionStorage`, or a non-`HttpOnly` cookie.
-- [ ] **AC42**: Given an authenticated user clicks "logout" in the UI, when the action completes, then the frontend has called `POST /auth/logout`, cleared the in-memory access token, and navigated to `/login`.
+- [x] **AC40**: Given an authenticated user, when they navigate to `/app/profile`, then the page displays their current `name` and `email`, and provides a form (using the shared update-profile schema) to edit `name`.
+- [x] **AC41**: Given a successful login, when the frontend handles the response, then the access token is held only in memory (e.g. React context/state) — never written to `localStorage`, `sessionStorage`, or a non-`HttpOnly` cookie.
+- [x] **AC42**: Given an authenticated user clicks "logout" in the UI, when the action completes, then the frontend has called `POST /auth/logout`, cleared the in-memory access token, and navigated to `/login`.
 
 ### Shared Validation Schemas
-- [ ] **AC43**: Given `packages/shared-types`, when its auth module is inspected, then `registerSchema`, `loginSchema`, `forgotPasswordSchema`, `resetPasswordSchema`, and `updateProfileSchema` are each defined exactly once and are the schemas imported by both `apps/api` (request DTO validation) and `apps/web` (form resolvers) — no parallel/duplicate schema is defined in either app.
-- [ ] **AC44**: Given the password-complexity rule (min 10 characters, at least one letter, at least one number), when it is applied in `registerSchema` and `resetPasswordSchema`, then both reference the same shared zod refinement (a single source of truth), not two independently written rules.
+- [x] **AC43**: Given `packages/shared-types`, when its auth module is inspected, then `registerSchema`, `loginSchema`, `forgotPasswordSchema`, `resetPasswordSchema`, and `updateProfileSchema` are each defined exactly once and are the schemas imported by both `apps/api` (request DTO validation) and `apps/web` (form resolvers) — no parallel/duplicate schema is defined in either app.
+- [x] **AC44**: Given the password-complexity rule (min 10 characters, at least one letter, at least one number), when it is applied in `registerSchema` and `resetPasswordSchema`, then both reference the same shared zod refinement (a single source of truth), not two independently written rules.
 
 ## 4. Technical Contracts
 
@@ -239,9 +240,15 @@ used to forge a valid session or reset link.
 - `(marketing)/login/page.tsx` → `/login`
 - `(marketing)/forgot-password/page.tsx` → `/forgot-password`
 - `(marketing)/reset-password/page.tsx` → `/reset-password` (reads `?token=` query param)
-- `(app)/profile/page.tsx` → `/app/profile` (protected)
-- `middleware.ts` — inspects the refresh-token cookie server-side for every
-  `/app/*` request; redirects to `/login?redirect=<original path>` if absent/invalid
+- `(app)/app/profile/page.tsx` → `/app/profile` (protected). Nested this way because
+  the `(app)` segment is a route group (URL-invisible) and a literal `app/` path
+  segment is needed to actually produce the `/app` URL prefix — confirmed against
+  the build's route table and against spec 001's `robots.ts`, which already
+  disallows `/app/` and `/app/*`.
+- `middleware.ts` — inspects, for every `/app/*` request, the presence of the
+  session-hint cookie (`AUTH_SESSION_HINT_COOKIE_NAME`, see the implementation
+  note under AC39) rather than the real refresh-token cookie; redirects to
+  `/login?redirect=<original path>` if absent
 - `<AuthForm>` variants (`RegisterForm`, `LoginForm`, `ForgotPasswordForm`,
   `ResetPasswordForm`) — `"use client"` (uses `react-hook-form` state and submit
   handlers)

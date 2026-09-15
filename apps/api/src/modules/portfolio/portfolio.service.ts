@@ -55,6 +55,11 @@ export class PortfolioService {
     const portfolio = await this.findPortfolioOrThrow(userId);
     const holdings = await this.prisma.holding.findMany({
       where: { portfolioId: portfolio.id },
+      // AC6's rounding-remainder tie-break is documented as "stable
+      // insertion order" — an explicit orderBy makes that guarantee real
+      // at the DB layer instead of relying on Postgres's incidental
+      // (unspecified) row order for a query with no ORDER BY.
+      orderBy: { createdAt: 'asc' },
     });
     const valued = await this.valuateHoldings(holdings);
 
@@ -98,6 +103,7 @@ export class PortfolioService {
     const portfolio = await this.findPortfolioOrThrow(userId);
     const holdings = await this.prisma.holding.findMany({
       where: { portfolioId: portfolio.id },
+      orderBy: { createdAt: 'asc' },
     });
     const valued = await this.valuateHoldings(holdings);
 

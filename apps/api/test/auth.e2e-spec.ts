@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import {
   ThrottlerGuard,
   ThrottlerStorage,
@@ -12,6 +14,7 @@ import { AppModule } from './../src/app.module';
 import { PrismaExceptionFilter } from './../src/common/filters/prisma-exception.filter';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { hashToken } from './../src/modules/auth/auth.crypto';
+import { AuthService } from './../src/modules/auth/auth.service';
 import { EmailService } from './../src/modules/auth/email/email.service';
 
 interface UserResponseBody {
@@ -133,6 +136,51 @@ describe('Auth (e2e)', () => {
         price: null,
       });
       expect(transactions[0]?.amount.toFixed(2)).toBe('10000.00');
+    });
+
+    it('spec 004 AC3: rolls back the whole registration in the real database when Portfolio creation fails mid-transaction', async () => {
+      const email = `spec004-ac3-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+
+      // A Prisma Client Extension applied to a *local* extended client
+      // (never the shared `prisma`/`app` instance) so this failure is
+      // scoped to this one AuthService instance and this one call —
+      // unlike a DB-level trigger, it can't leak into other e2e spec files
+      // running concurrently in a different Jest worker against the same
+      // shared Postgres database. Extensions apply inside interactive
+      // transactions too, so `tx.portfolio.create` inside the real
+      // `$transaction` genuinely throws, proving Postgres itself rolls
+      // back the User insert — not just that the JS error propagates
+      // (that weaker check is what auth.service.spec.ts's mocked
+      // equivalent already covers at the unit level).
+      const failingPrisma = prisma.$extends({
+        query: {
+          portfolio: {
+            create() {
+              throw new Error(
+                'spec004_ac3: simulated portfolio creation failure',
+              );
+            },
+          },
+        },
+      });
+      const authService = new AuthService(
+        failingPrisma as unknown as PrismaService,
+        app.get(JwtService),
+        app.get(ConfigService),
+        app.get(EmailService),
+      );
+
+      await expect(
+        authService.register({
+          email,
+          password: 'correcthorse1',
+          name: 'Ada Lovelace',
+        }),
+      ).rejects.toThrow('spec004_ac3: simulated portfolio creation failure');
+
+      const userCount = await prisma.user.count({ where: { email } });
+      expect(userCount).toBe(0);
     });
 
     it('AC2: rejects a duplicate email (case-insensitive) with 409 EMAIL_ALREADY_EXISTS', async () => {

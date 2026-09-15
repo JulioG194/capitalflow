@@ -212,6 +212,12 @@ describe('PortfolioService', () => {
 
       const result = await service.getSummary('user-1');
 
+      // The "insertion order" tie-break claim above is only true if the
+      // query itself is deterministically ordered.
+      expect(prisma.holding.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
+      );
+
       expect(result.allocation).toHaveLength(3);
       const sum = result.allocation.reduce(
         (total, slice) => total + Number(slice.percentage),

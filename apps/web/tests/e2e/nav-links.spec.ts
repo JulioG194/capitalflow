@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Top nav structure and links (AC24)", () => {
+  // These assertions target the desktop nav bar specifically (the mobile
+  // hamburger's own link set is covered by mobile-nav.spec.ts), so force a
+  // desktop-sized viewport regardless of which Playwright project runs it.
+  test.use({ viewport: { width: 1280, height: 800 } });
+
   test("logo links home, and marketing nav links resolve without 404", async ({
     page,
     request,

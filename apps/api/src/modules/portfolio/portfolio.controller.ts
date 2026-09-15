@@ -1,8 +1,12 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import type {
-  HoldingDto,
-  PortfolioSummaryDto,
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  transactionsQuerySchema,
+  type HoldingDto,
+  type PaginatedTransactionsDto,
+  type PortfolioSummaryDto,
+  type TransactionsQuery,
 } from '@capitalflow/shared-types';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import {
   AccessTokenGuard,
   type RequestWithUser,
@@ -23,5 +27,18 @@ export class PortfolioController {
   @Get('holdings')
   getHoldings(@Req() req: RequestWithUser): Promise<HoldingDto[]> {
     return this.portfolioService.getHoldings(req.user.sub);
+  }
+
+  @Get('transactions')
+  getTransactions(
+    @Req() req: RequestWithUser,
+    @Query(new ZodValidationPipe(transactionsQuerySchema))
+    query: TransactionsQuery,
+  ): Promise<PaginatedTransactionsDto> {
+    return this.portfolioService.getTransactions(
+      req.user.sub,
+      query.page,
+      query.limit,
+    );
   }
 }

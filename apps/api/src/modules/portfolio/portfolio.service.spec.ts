@@ -22,6 +22,18 @@ interface HoldingRecord {
   updatedAt: Date;
 }
 
+interface TransactionRecord {
+  id: string;
+  portfolioId: string;
+  type: 'buy' | 'sell' | 'deposit';
+  symbol: string | null;
+  quantity: Prisma.Decimal | null;
+  price: Prisma.Decimal | null;
+  amount: Prisma.Decimal;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: Date;
+}
+
 interface PrismaMock {
   portfolio: {
     findUnique: jest.Mock<Promise<PortfolioRecord | null>, [unknown]>;
@@ -32,6 +44,8 @@ interface PrismaMock {
       Promise<{ _sum: { amount: Prisma.Decimal | null } }>,
       [unknown]
     >;
+    findMany: jest.Mock<Promise<TransactionRecord[]>, [unknown]>;
+    count: jest.Mock<Promise<number>, [unknown]>;
   };
 }
 
@@ -67,6 +81,23 @@ describe('PortfolioService', () => {
     };
   }
 
+  function transactionRecord(
+    overrides: Partial<TransactionRecord> = {},
+  ): TransactionRecord {
+    return {
+      id: 'transaction-1',
+      portfolioId: 'portfolio-1',
+      type: 'deposit',
+      symbol: null,
+      quantity: null,
+      price: null,
+      amount: new Prisma.Decimal('10000.00'),
+      status: 'completed',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      ...overrides,
+    };
+  }
+
   beforeEach(async () => {
     prisma = {
       portfolio: {
@@ -83,6 +114,10 @@ describe('PortfolioService', () => {
           .mockResolvedValue({
             _sum: { amount: new Prisma.Decimal('10000.00') },
           }),
+        findMany: jest
+          .fn<Promise<TransactionRecord[]>, [unknown]>()
+          .mockResolvedValue([]),
+        count: jest.fn<Promise<number>, [unknown]>().mockResolvedValue(0),
       },
     };
     redis = {
@@ -344,6 +379,110 @@ describe('PortfolioService', () => {
 
       await expect(
         service.getHoldings('user-without-portfolio'),
+      ).rejects.toBeInstanceOf(PortfolioNotFoundException);
+    });
+  });
+
+  describe('getTransactions', () => {
+    it('AC16: defaults sort by createdAt desc / id desc and reflects total/totalPages', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([transactionRecord()]);
+      prisma.transaction.count.mockResolvedValue(1);
+
+      const result = await service.getTransactions('user-1', 1, 20);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip: 0,
+          take: 20,
+        }),
+      );
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+      expect(result.total).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('AC17: page/limit control the requested slice', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.transaction.count.mockResolvedValue(12);
+
+      await service.getTransactions('user-1', 2, 5);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 5, take: 5 }),
+      );
+    });
+
+    it('AC18: clamps a limit above 100 to 100 rather than rejecting', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.transaction.count.mockResolvedValue(0);
+
+      const result = await service.getTransactions('user-1', 1, 500);
+
+      expect(result.limit).toBe(100);
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 100 }),
+      );
+    });
+
+    it('AC20: zero transactions returns items=[], total=0, totalPages=0', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.transaction.count.mockResolvedValue(0);
+
+      const result = await service.getTransactions('user-1', 1, 20);
+
+      expect(result).toMatchObject({ items: [], total: 0, totalPages: 0 });
+    });
+
+    it('AC21: a page beyond the last available page returns items=[] with 200-shaped data, not an error', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.transaction.count.mockResolvedValue(1);
+
+      const result = await service.getTransactions('user-1', 999, 20);
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(1);
+      expect(result.totalPages).toBe(1);
+    });
+
+    it('serializes null symbol/quantity/price on a deposit transaction, and formats Decimal fields', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+      prisma.transaction.findMany.mockResolvedValue([
+        transactionRecord({
+          type: 'buy',
+          symbol: 'AAPL',
+          quantity: new Prisma.Decimal('2.5'),
+          price: new Prisma.Decimal('150'),
+          amount: new Prisma.Decimal('375.00'),
+          status: 'completed',
+        }),
+      ]);
+      prisma.transaction.count.mockResolvedValue(1);
+
+      const result = await service.getTransactions('user-1', 1, 20);
+
+      expect(result.items[0]).toMatchObject({
+        type: 'buy',
+        symbol: 'AAPL',
+        quantity: '2.5',
+        price: '150.00',
+        amount: '375.00',
+        status: 'completed',
+      });
+    });
+
+    it('AC10: throws PortfolioNotFoundException when the user has no Portfolio row', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getTransactions('user-without-portfolio', 1, 20),
       ).rejects.toBeInstanceOf(PortfolioNotFoundException);
     });
   });

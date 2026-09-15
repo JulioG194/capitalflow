@@ -4,9 +4,11 @@ import {
   type AllocationSliceDto,
   type AssetClass,
   type HoldingDto,
+  type PaginatedTransactionsDto,
   type PortfolioSummaryDto,
+  type TransactionDto,
 } from '@capitalflow/shared-types';
-import { Prisma } from '../../../generated/prisma/client.js';
+import { Prisma, type Transaction } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { PortfolioNotFoundException } from '../../common/exceptions/portfolio-not-found.exception';
@@ -32,6 +34,9 @@ export interface ValuedHolding {
 }
 
 const ZERO = new Prisma.Decimal(0);
+
+/** AC18: limit above this is clamped, not rejected. */
+const MAX_TRANSACTIONS_LIMIT = 100;
 
 /**
  * Spec 004 section 4, design decision 2: this service never calls Finnhub —
@@ -118,6 +123,52 @@ export class PortfolioService {
       marketValue: holding.marketValue.toFixed(2),
       unrealizedProfit: this.formatSigned(unrealizedProfit),
       unrealizedProfitPercent,
+    };
+  }
+
+  /**
+   * AC16-21: `page`/`limit` are already coerced to positive integers by
+   * `transactionsQuerySchema` (structurally invalid values are 400s before
+   * this method runs); `limit` above `MAX_TRANSACTIONS_LIMIT` is clamped
+   * here rather than rejected (AC18, a valid business case).
+   */
+  async getTransactions(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedTransactionsDto> {
+    const portfolio = await this.findPortfolioOrThrow(userId);
+    const clampedLimit = Math.min(limit, MAX_TRANSACTIONS_LIMIT);
+
+    const [records, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: { portfolioId: portfolio.id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * clampedLimit,
+        take: clampedLimit,
+      }),
+      this.prisma.transaction.count({ where: { portfolioId: portfolio.id } }),
+    ]);
+
+    return {
+      items: records.map((record) => this.toTransactionDto(record)),
+      page,
+      limit: clampedLimit,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / clampedLimit),
+    };
+  }
+
+  private toTransactionDto(record: Transaction): TransactionDto {
+    return {
+      id: record.id,
+      type: record.type,
+      symbol: record.symbol,
+      quantity: record.quantity ? record.quantity.toString() : null,
+      price: record.price ? record.price.toFixed(2) : null,
+      amount: record.amount.toFixed(2),
+      status: record.status,
+      createdAt: record.createdAt.toISOString(),
     };
   }
 

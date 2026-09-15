@@ -4,6 +4,17 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/../tsconfig.jest.json"
+      }
+    ]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/\\.pnpm/(?!(@nestjs\\+config|dotenv|dotenv-expand|es-toolkit|@standard-schema)@)"
+  ],
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
   }
 }

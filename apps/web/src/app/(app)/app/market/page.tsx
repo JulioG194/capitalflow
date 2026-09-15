@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { MarketDelayDisclaimer } from "@/components/market/MarketDelayDisclaimer";
+import { MarketTicker } from "@/components/market/MarketTicker";
+import { MarketIndexCards } from "@/components/market/MarketIndexCards";
+
+// Not indexable (robots.ts disallows /app/*, spec 001 AC12) — a minimal
+// title is enough, no OG/canonical boilerplate needed here.
+export const metadata: Metadata = {
+  title: "Mercado",
+};
+
+/**
+ * `/app/market` (spec 003). Server Component shell (AC25): renders the
+ * static structure — headings, section containers, the AC24 delay
+ * disclaimer — with no live price values embedded server-side, so it's
+ * visible with no client-side JavaScript required. Each live-data section
+ * below is a Client Component that mounts its own skeleton (AC26) until its
+ * first `quote:update` arrives. The "Modo Simulador" badge is already
+ * rendered unconditionally by `<AppNav>` in the shared `(app)/app/layout.tsx`
+ * (CLAUDE.md: one badge instance, not reimplemented per page).
+ *
+ * The chart, featured table, and connection banner sections land in
+ * follow-up spec-003 commits (blocks 2-4); this shell only mounts the
+ * sections implemented so far (ticker, index cards).
+ */
+export default function MarketPage() {
+  return (
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-ink">Mercado</h1>
+        <MarketDelayDisclaimer />
+      </header>
+
+      <section aria-labelledby="ticker-heading" className="flex flex-col gap-3">
+        <h2 id="ticker-heading" className="text-lg font-semibold text-ink">
+          Acciones destacadas
+        </h2>
+        <MarketTicker />
+      </section>
+
+      <section aria-labelledby="indices-heading" className="flex flex-col gap-3">
+        <h2 id="indices-heading" className="text-lg font-semibold text-ink">
+          Índices y cripto
+        </h2>
+        <MarketIndexCards />
+      </section>
+    </div>
+  );
+}

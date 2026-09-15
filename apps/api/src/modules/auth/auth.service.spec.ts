@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -636,6 +637,78 @@ describe('AuthService', () => {
       await expect(
         service.resetPassword('raw-reset-token', 'newcorrecthorse1'),
       ).rejects.toBeInstanceOf(InvalidResetTokenException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getProfile', () => {
+    it('AC26: returns the sanitized profile for an existing user', async () => {
+      const createdAt = new Date('2026-01-01T00:00:00.000Z');
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        passwordHash: 'irrelevant-hash',
+        name: 'Ada Lovelace',
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      const result = await service.getProfile('user-1');
+
+      expect(result).toEqual({
+        id: 'user-1',
+        email: 'user@example.com',
+        name: 'Ada Lovelace',
+        createdAt: createdAt.toISOString(),
+      });
+    });
+
+    it('throws Unauthorized when the user no longer exists', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.getProfile('user-1')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('AC28: updates the name and returns the sanitized profile', async () => {
+      const createdAt = new Date('2026-01-01T00:00:00.000Z');
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        passwordHash: 'irrelevant-hash',
+        name: 'Old Name',
+        createdAt,
+        updatedAt: createdAt,
+      });
+      prisma.user.update.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        passwordHash: 'irrelevant-hash',
+        name: 'New Name',
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      const result = await service.updateProfile('user-1', {
+        name: 'New Name',
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { name: 'New Name' },
+      });
+      expect(result.name).toBe('New Name');
+    });
+
+    it('throws Unauthorized when the user no longer exists', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateProfile('user-1', { name: 'New Name' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });

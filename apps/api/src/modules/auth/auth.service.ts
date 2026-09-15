@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +15,7 @@ import type { AccessTokenPayload } from './auth-token.types';
 import { EmailService } from './email/email.service';
 import type { RegisterDto } from './dto/register.dto';
 import type { LoginDto } from './dto/login.dto';
+import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type { User } from './entities';
 
 export interface LoginResult {
@@ -329,6 +330,50 @@ export class AuthService {
     });
 
     return { raw: rawToken, id: record.id };
+  }
+
+  /**
+   * AC26: `AccessTokenGuard` has already verified the JWT signature/expiry;
+   * this resolves the current DB row. Defensive (spec Edge Cases, mirroring
+   * the analogous refresh-token case): if the user was deleted after the
+   * token was issued, treat it the same as any other invalid session
+   * rather than a generic 404.
+   */
+  async getProfile(userId: string): Promise<UserDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.toUserDto(user);
+  }
+
+  /**
+   * AC28/AC29: only `name` is accepted — enforced upstream by
+   * `updateProfileBodySchema`'s `.strict()`, so an attempt to also set
+   * `email`/`password` is rejected by the pipe before this method runs,
+   * not silently ignored here.
+   */
+  async updateProfile(
+    userId: string,
+    input: UpdateProfileDto,
+  ): Promise<UserDto> {
+    // Defensive (same rationale as `getProfile`): confirm the user still
+    // exists before writing, rather than letting a delete-between-guard-
+    // and-handler race surface as a raw Prisma "record not found" error.
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!existing) {
+      throw new UnauthorizedException();
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { name: input.name },
+    });
+    return this.toUserDto(user);
   }
 
   private toUserDto(user: User): UserDto {

@@ -674,4 +674,114 @@ describe('Auth (e2e)', () => {
         .expect(200);
     });
   });
+
+  describe('GET /auth/me + PATCH /auth/me', () => {
+    const password = 'correcthorse1';
+
+    async function registerAndGetAccessToken(email: string): Promise<{
+      accessToken: string;
+      id: string;
+    }> {
+      registeredEmails.push(email);
+      const registerResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Profile Fixture' })
+        .expect(201);
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+      return {
+        accessToken: (loginResponse.body as { accessToken: string })
+          .accessToken,
+        id: (registerResponse.body as UserResponseBody).id,
+      };
+    }
+
+    it('AC26: returns the authenticated profile for a valid access token', async () => {
+      const email = `me-ac26-${Date.now()}@example.com`;
+      const { accessToken, id } = await registerAndGetAccessToken(email);
+
+      const response = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const body = response.body as UserResponseBody;
+      expect(body).toEqual({
+        id,
+        email,
+        name: 'Profile Fixture',
+        createdAt: expect.any(String) as unknown,
+      });
+    });
+
+    it('AC27: rejects a missing access token', async () => {
+      await request(app.getHttpServer()).get('/auth/me').expect(401);
+    });
+
+    it('AC27: rejects a malformed access token', async () => {
+      await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', 'Bearer not-a-real-jwt')
+        .expect(401);
+    });
+
+    it('AC28: updates the name via PATCH and returns the updated profile', async () => {
+      const email = `me-ac28-${Date.now()}@example.com`;
+      const { accessToken, id } = await registerAndGetAccessToken(email);
+
+      const response = await request(app.getHttpServer())
+        .patch('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ name: 'Updated Name' })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        id,
+        email,
+        name: 'Updated Name',
+        createdAt: expect.any(String) as unknown,
+      });
+
+      const getResponse = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      expect((getResponse.body as UserResponseBody).name).toBe('Updated Name');
+    });
+
+    it('AC29: rejects an attempt to set email via PATCH', async () => {
+      const email = `me-ac29-email-${Date.now()}@example.com`;
+      const { accessToken } = await registerAndGetAccessToken(email);
+
+      await request(app.getHttpServer())
+        .patch('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ name: 'Still Valid', email: 'new@example.com' })
+        .expect(400);
+    });
+
+    it('AC29: rejects an attempt to set password via PATCH', async () => {
+      const email = `me-ac29-password-${Date.now()}@example.com`;
+      const { accessToken } = await registerAndGetAccessToken(email);
+
+      await request(app.getHttpServer())
+        .patch('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ name: 'Still Valid', password: 'newpassword1' })
+        .expect(400);
+    });
+
+    it('Edge Case: rejects an empty PATCH body with 400 rather than a silent no-op 200', async () => {
+      const email = `me-empty-body-${Date.now()}@example.com`;
+      const { accessToken } = await registerAndGetAccessToken(email);
+
+      await request(app.getHttpServer())
+        .patch('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({})
+        .expect(400);
+    });
+  });
 });

@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -26,6 +28,10 @@ import {
   RefreshTokenGuard,
   type RequestWithRefreshToken,
 } from './guards/refresh-token.guard';
+import {
+  AccessTokenGuard,
+  type RequestWithUser,
+} from './guards/access-token.guard';
 import { registerBodySchema, type RegisterDto } from './dto/register.dto';
 import { loginBodySchema, type LoginDto } from './dto/login.dto';
 import {
@@ -36,6 +42,10 @@ import {
   resetPasswordBodySchema,
   type ResetPasswordDto,
 } from './dto/reset-password.dto';
+import {
+  updateProfileBodySchema,
+  type UpdateProfileDto,
+} from './dto/update-profile.dto';
 
 interface LoginResponseBody {
   accessToken: string;
@@ -160,5 +170,27 @@ export class AuthController {
     body: ResetPasswordDto,
   ): Promise<{ message: string }> {
     return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  /** AC26/AC27: `AccessTokenGuard` rejects a missing/malformed/expired token with 401. */
+  @Get('me')
+  @UseGuards(AccessTokenGuard)
+  getMe(@Req() req: RequestWithUser): Promise<UserDto> {
+    return this.authService.getProfile(req.user.sub);
+  }
+
+  /**
+   * AC28/AC29: only `name` is a permitted field — `updateProfileBodySchema`
+   * rejects `email`/`password` (or any other field) via `.strict()`, and
+   * rejects an empty body since `name` is required.
+   */
+  @Patch('me')
+  @UseGuards(AccessTokenGuard)
+  updateMe(
+    @Req() req: RequestWithUser,
+    @Body(new ZodValidationPipe(updateProfileBodySchema))
+    body: UpdateProfileDto,
+  ): Promise<UserDto> {
+    return this.authService.updateProfile(req.user.sub, body);
   }
 }

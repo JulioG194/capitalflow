@@ -1,0 +1,46 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MarketingFooter > matches snapshot 1`] = `
+<div>
+  <footer
+    class="border-t border-gray-100 bg-white"
+  >
+    <div
+      class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6"
+    >
+      <p
+        class="inline-flex w-fit items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-900 "
+        role="note"
+      >
+        Simulador de inversiones con fines educativos. No se manejan fondos reales.
+      </p>
+      <nav
+        aria-label="Legal"
+        class="flex flex-wrap gap-x-6 gap-y-2 text-sm"
+      >
+        <a
+          class="text-ink-muted hover:text-ink"
+          href="/terms"
+        >
+          Términos de servicio
+        </a>
+        <a
+          class="text-ink-muted hover:text-ink"
+          href="/privacy"
+        >
+          Privacidad
+        </a>
+      </nav>
+      <p
+        class="text-xs text-ink-muted"
+      >
+        © 
+        2026
+         
+        CapitalFlow
+        . Todos los derechos reservados.
+      </p>
+    </div>
+  </footer>
+</div>
+`;

@@ -1,0 +1,35 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+type CTAButtonProps = {
+  href: string;
+  children: ReactNode;
+  variant?: "primary" | "secondary";
+  className?: string;
+};
+
+/**
+ * Primary call-to-action button. Always a real `<Link>` (not a client-side
+ * `onClick` handler) so it works with JavaScript disabled (AC8) and is
+ * keyboard/focus accessible by default (AC21).
+ */
+export function CTAButton({
+  href,
+  children,
+  variant = "primary",
+  className = "",
+}: CTAButtonProps) {
+  const base =
+    "inline-flex items-center justify-center rounded-card px-5 py-2.5 text-sm font-semibold transition-colors";
+  const variants = {
+    primary: "bg-brand-600 text-white hover:bg-brand-700",
+    secondary:
+      "border border-brand-600 text-brand-700 hover:bg-brand-50",
+  };
+
+  return (
+    <Link href={href} className={`${base} ${variants[variant]} ${className}`}>
+      {children}
+    </Link>
+  );
+}

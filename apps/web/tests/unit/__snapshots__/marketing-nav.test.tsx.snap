@@ -1,0 +1,115 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MarketingNav > matches snapshot 1`] = `
+<div>
+  <header
+    class="relative border-b border-gray-100 bg-white"
+  >
+    <nav
+      aria-label="Principal"
+      class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6"
+    >
+      <a
+        class="flex items-center gap-2 text-lg font-semibold text-ink"
+        href="/"
+      >
+        <img
+          alt="Logotipo de CapitalFlow"
+          data-nimg="1"
+          decoding="async"
+          height="32"
+          src="/logo.svg"
+          style="color: transparent;"
+          width="32"
+        />
+        <span>
+          CapitalFlow
+        </span>
+      </a>
+      <ul
+        class="hidden items-center gap-6 md:flex"
+      >
+        <li>
+          <a
+            class="text-sm font-medium text-ink-muted hover:text-ink"
+            href="/how-it-works"
+          >
+            Cómo funciona
+          </a>
+        </li>
+        <li>
+          <a
+            class="text-sm font-medium text-ink-muted hover:text-ink"
+            href="/pricing"
+          >
+            Precios
+          </a>
+        </li>
+        <li>
+          <a
+            class="text-sm font-medium text-ink-muted hover:text-ink"
+            href="/about"
+          >
+            Nosotros
+          </a>
+        </li>
+      </ul>
+      <div
+        class="hidden items-center gap-4 md:flex"
+      >
+        <a
+          class="text-sm font-medium text-ink hover:text-brand-600"
+          href="/login"
+        >
+          Iniciar sesión
+        </a>
+        <a
+          class="inline-flex items-center justify-center rounded-card px-5 py-2.5 text-sm font-semibold transition-colors bg-brand-600 text-white hover:bg-brand-700 "
+          href="/register"
+        >
+          Registrarse
+        </a>
+      </div>
+      <div
+        class="md:hidden"
+      >
+        <button
+          aria-controls="mobile-nav-panel"
+          aria-expanded="false"
+          class="inline-flex items-center justify-center rounded-card p-2 text-ink"
+          type="button"
+        >
+          <span
+            class="sr-only"
+          >
+            Abrir menú
+          </span>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-menu"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4 5h16"
+            />
+            <path
+              d="M4 12h16"
+            />
+            <path
+              d="M4 19h16"
+            />
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+</div>
+`;

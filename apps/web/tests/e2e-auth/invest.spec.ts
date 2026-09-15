@@ -202,19 +202,10 @@ test.describe("unauthenticated access to /app/invest", () => {
     await page.goto("/app/invest");
     await expect(page).toHaveURL(/\/login\?redirect=%2Fapp%2Finvest$/);
   });
-  // NOTE (flagged, not silently worked around): the AC30 test above had to
-  // add `Access-Control-Expose-Headers: Retry-After` to its *mocked* 429
-  // response to make `Response.headers.get("Retry-After")` readable at all
-  // from `apps/web`. The real `apps/api` (`src/main.ts`'s `app.enableCors()`)
-  // does not set `exposedHeaders`, so in the deployed app (where `apps/web`
-  // and `apps/api` are different origins) the frontend's `fetch()` cannot
-  // actually read a real `Retry-After` header today, for this endpoint or
-  // for spec 002's identically-shaped login throttle. `ConfirmInvestModal`'s
-  // `retryAfterSeconds`-derived copy is implemented correctly and degrades
-  // gracefully (the generic "too many attempts" message still renders, just
-  // without a specific wait time) when the header is invisible, but the
-  // AC30 behavior of *surfacing a wait time* only works once `apps/api` adds
-  // `exposedHeaders: ["Retry-After"]` to its CORS config — out of scope for
-  // this frontend-only task (`apps/api` is explicitly off-limits here), but
-  // worth fixing there before relying on this behavior in production.
+  // NOTE: the AC30 test above adds `Access-Control-Expose-Headers:
+  // Retry-After` to its *mocked* 429 response, matching what the real
+  // `apps/api` now sends — `src/main.ts`'s `app.enableCors()` sets
+  // `exposedHeaders: ["Retry-After"]` (fixed in 59d1ab5), so `apps/web`'s
+  // cross-origin `fetch()` can read a real `Retry-After` header from this
+  // endpoint and from spec 002's identically-shaped login throttle.
 });

@@ -112,4 +112,41 @@ describe("InvestForm", () => {
     expect(getPortfolioSummary).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("AC31: closing the modal on an in-flight request and reopening for a new attempt sends an independent request", async () => {
+    vi.mocked(getPortfolioSummary).mockResolvedValue(summary({ cashBalance: "1000.00" }));
+    // The first call never resolves within this test — it simulates a
+    // request the user navigates away from mid-flight (AC31's first
+    // sentence: the in-flight request is left running, never cancelled).
+    // The second call resolves normally, standing in for the independent
+    // retry (AC31's second sentence).
+    vi.mocked(investInPortfolio)
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValueOnce(summary({ cashBalance: "900.00" }));
+
+    render(<InvestForm />);
+    await screen.findByText("$1,000.00");
+
+    fireEvent.change(screen.getByLabelText("Monto a invertir"), { target: { value: "100.00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
+    await screen.findByRole("dialog", { name: "Confirmar inversión" });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+
+    // Close (simulating "navigate away") while the first call is still pending.
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    // Reopen for a new attempt — this must be a fresh component instance
+    // firing a brand-new call, never resubmitting/reusing the first promise.
+    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
+    await screen.findByRole("dialog", { name: "Confirmar inversión" });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+
+    await screen.findByText("Inversión simulada realizada");
+
+    const defaultSymbol = INVESTABLE_SYMBOLS[0];
+    expect(investInPortfolio).toHaveBeenCalledTimes(2);
+    expect(investInPortfolio).toHaveBeenNthCalledWith(1, { symbol: defaultSymbol, amount: "100.00" });
+    expect(investInPortfolio).toHaveBeenNthCalledWith(2, { symbol: defaultSymbol, amount: "100.00" });
+  });
 });

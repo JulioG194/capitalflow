@@ -14,6 +14,7 @@ import { AppModule } from './../src/app.module';
 import { PrismaExceptionFilter } from './../src/common/filters/prisma-exception.filter';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { hashToken } from './../src/modules/auth/auth.crypto';
+import { AuthModule } from './../src/modules/auth/auth.module';
 import { AuthService } from './../src/modules/auth/auth.service';
 import { EmailService } from './../src/modules/auth/email/email.service';
 
@@ -976,8 +977,14 @@ describe('POST /auth/login rate limiting (AC30/AC31)', () => {
     // AC31: simulate the rolling window having elapsed (rather than a real
     // multi-second sleep) by clearing the in-memory throttler storage this
     // isolated app instance owns — a subsequent request is then processed
-    // normally again.
-    const storage = app.get<ThrottlerStorageService>(ThrottlerStorage);
+    // normally again. `ThrottlerStorage` is a plain, module-local provider
+    // on `AuthModule` (see auth.module.ts); `.select(AuthModule)` resolves
+    // that exact instance deterministically — a bare `app.get(...)` would
+    // be ambiguous now that `PortfolioModule` binds the same token for its
+    // own (separate) invest throttle (spec 005).
+    const storage = app
+      .select(AuthModule)
+      .get<ThrottlerStorageService>(ThrottlerStorage, { strict: true });
     storage.storage.clear();
 
     await request(app.getHttpServer())

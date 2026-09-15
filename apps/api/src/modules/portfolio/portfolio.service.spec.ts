@@ -3,6 +3,9 @@ import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { PortfolioNotFoundException } from '../../common/exceptions/portfolio-not-found.exception';
+import { AmountBelowMinimumException } from '../../common/exceptions/amount-below-minimum.exception';
+import { InsufficientFundsException } from '../../common/exceptions/insufficient-funds.exception';
+import { PriceUnavailableException } from '../../common/exceptions/price-unavailable.exception';
 import { PortfolioService } from './portfolio.service';
 
 interface PortfolioRecord {
@@ -34,6 +37,28 @@ interface TransactionRecord {
   createdAt: Date;
 }
 
+interface TxHoldingRecord {
+  id: string;
+  portfolioId: string;
+  symbol: string;
+  quantity: Prisma.Decimal;
+  averagePrice: Prisma.Decimal;
+}
+
+interface TxMock {
+  portfolio: {
+    updateMany: jest.Mock<Promise<{ count: number }>, [unknown]>;
+  };
+  holding: {
+    findUnique: jest.Mock<Promise<TxHoldingRecord | null>, [unknown]>;
+    update: jest.Mock<Promise<unknown>, [unknown]>;
+    create: jest.Mock<Promise<unknown>, [unknown]>;
+  };
+  transaction: {
+    create: jest.Mock<Promise<unknown>, [unknown]>;
+  };
+}
+
 interface PrismaMock {
   portfolio: {
     findUnique: jest.Mock<Promise<PortfolioRecord | null>, [unknown]>;
@@ -47,6 +72,7 @@ interface PrismaMock {
     findMany: jest.Mock<Promise<TransactionRecord[]>, [unknown]>;
     count: jest.Mock<Promise<number>, [unknown]>;
   };
+  $transaction: jest.Mock<Promise<unknown>, [(tx: TxMock) => Promise<unknown>]>;
 }
 
 describe('PortfolioService', () => {
@@ -98,7 +124,33 @@ describe('PortfolioService', () => {
     };
   }
 
+  let tx: TxMock;
+
   beforeEach(async () => {
+    tx = {
+      portfolio: {
+        updateMany: jest
+          .fn<Promise<{ count: number }>, [unknown]>()
+          .mockResolvedValue({ count: 1 }),
+      },
+      holding: {
+        findUnique: jest
+          .fn<Promise<TxHoldingRecord | null>, [unknown]>()
+          .mockResolvedValue(null),
+        update: jest
+          .fn<Promise<unknown>, [unknown]>()
+          .mockResolvedValue(undefined),
+        create: jest
+          .fn<Promise<unknown>, [unknown]>()
+          .mockResolvedValue(undefined),
+      },
+      transaction: {
+        create: jest
+          .fn<Promise<unknown>, [unknown]>()
+          .mockResolvedValue(undefined),
+      },
+    };
+
     prisma = {
       portfolio: {
         findUnique: jest.fn<Promise<PortfolioRecord | null>, [unknown]>(),
@@ -119,6 +171,9 @@ describe('PortfolioService', () => {
           .mockResolvedValue([]),
         count: jest.fn<Promise<number>, [unknown]>().mockResolvedValue(0),
       },
+      $transaction: jest
+        .fn<Promise<unknown>, [(tx: TxMock) => Promise<unknown>]>()
+        .mockImplementation((callback) => callback(tx)),
     };
     redis = {
       get: jest.fn<Promise<string | null>, [string]>().mockResolvedValue(null),
@@ -490,6 +545,153 @@ describe('PortfolioService', () => {
       await expect(
         service.getTransactions('user-without-portfolio', 1, 20),
       ).rejects.toBeInstanceOf(PortfolioNotFoundException);
+    });
+  });
+
+  describe('invest', () => {
+    it('AC8/AC10/AC11: creates a new Holding (quantity rounded half-up to 6dp) and a completed buy Transaction, decrementing cashBalance by the exact amount', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(
+        portfolioRecord({ cashBalance: new Prisma.Decimal('10000.00') }),
+      );
+      redis.get.mockResolvedValue(JSON.stringify({ price: '3.00' }));
+      tx.holding.findUnique.mockResolvedValue(null);
+
+      await service.invest('user-1', 'AAPL', '200.00');
+
+      // AC5/AC11: atomic conditional decrement, exact Decimal amount.
+      expect(tx.portfolio.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'portfolio-1',
+          cashBalance: { gte: new Prisma.Decimal('200.00') },
+        },
+        data: { cashBalance: { decrement: new Prisma.Decimal('200.00') } },
+      });
+
+      // AC8: 200.00 / 3.00 = 66.6666...7 -> rounds half-up to 66.666667.
+      expect(tx.holding.create).toHaveBeenCalledTimes(1);
+      const holdingCreateArgs = tx.holding.create.mock.calls[0]?.[0] as {
+        data: {
+          portfolioId: string;
+          symbol: string;
+          quantity: Prisma.Decimal;
+          averagePrice: Prisma.Decimal;
+        };
+      };
+      expect(holdingCreateArgs.data.portfolioId).toBe('portfolio-1');
+      expect(holdingCreateArgs.data.symbol).toBe('AAPL');
+      expect(holdingCreateArgs.data.quantity.toFixed(6)).toBe('66.666667');
+      expect(holdingCreateArgs.data.averagePrice.toFixed(2)).toBe('3.00');
+      expect(tx.holding.update).not.toHaveBeenCalled();
+
+      // AC10: exactly one completed "buy" Transaction row.
+      expect(tx.transaction.create).toHaveBeenCalledTimes(1);
+      const transactionCreateArgs = tx.transaction.create.mock
+        .calls[0]?.[0] as {
+        data: {
+          portfolioId: string;
+          type: string;
+          symbol: string;
+          quantity: Prisma.Decimal;
+          price: Prisma.Decimal;
+          amount: Prisma.Decimal;
+          status: string;
+        };
+      };
+      expect(transactionCreateArgs.data).toMatchObject({
+        portfolioId: 'portfolio-1',
+        type: 'buy',
+        symbol: 'AAPL',
+        status: 'completed',
+      });
+      expect(transactionCreateArgs.data.quantity.toFixed(6)).toBe('66.666667');
+      expect(transactionCreateArgs.data.price.toFixed(2)).toBe('3.00');
+      expect(transactionCreateArgs.data.amount.toFixed(2)).toBe('200.00');
+    });
+
+    it('AC9: updates an existing Holding in place with quantity incremented and a quantity-weighted averagePrice, rounded to 2dp', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(
+        portfolioRecord({ cashBalance: new Prisma.Decimal('10000.00') }),
+      );
+      redis.get.mockResolvedValue(JSON.stringify({ price: '2.00' }));
+      tx.holding.findUnique.mockResolvedValue({
+        id: 'holding-1',
+        portfolioId: 'portfolio-1',
+        symbol: 'AAPL',
+        quantity: new Prisma.Decimal('10'),
+        averagePrice: new Prisma.Decimal('100.00'),
+      });
+
+      await service.invest('user-1', 'AAPL', '300.00');
+
+      // purchasedQuantity = 300.00 / 2.00 = 150.000000 (exact).
+      // newQuantity = 10 + 150 = 160.
+      // newAveragePrice = (10*100 + 150*2) / 160 = 1300 / 160 = 8.125 -> 8.13.
+      expect(tx.holding.create).not.toHaveBeenCalled();
+      expect(tx.holding.update).toHaveBeenCalledTimes(1);
+      const updateArgs = tx.holding.update.mock.calls[0]?.[0] as {
+        where: { id: string };
+        data: { quantity: Prisma.Decimal; averagePrice: Prisma.Decimal };
+      };
+      expect(updateArgs.where).toEqual({ id: 'holding-1' });
+      expect(updateArgs.data.quantity.toFixed(6)).toBe('160.000000');
+      expect(updateArgs.data.averagePrice.toFixed(2)).toBe('8.13');
+    });
+
+    it('AC5/AC6: the atomic conditional update affecting zero rows rejects with InsufficientFundsException and writes no Holding/Transaction', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(
+        portfolioRecord({ cashBalance: new Prisma.Decimal('100.00') }),
+      );
+      redis.get.mockResolvedValue(JSON.stringify({ price: '10.00' }));
+      tx.portfolio.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.invest('user-1', 'AAPL', '150.00'),
+      ).rejects.toBeInstanceOf(InsufficientFundsException);
+
+      expect(tx.holding.findUnique).not.toHaveBeenCalled();
+      expect(tx.holding.create).not.toHaveBeenCalled();
+      expect(tx.holding.update).not.toHaveBeenCalled();
+      expect(tx.transaction.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a cache miss', null],
+      ['a malformed cache entry', 'not-json'],
+      ['an entry with no price field', JSON.stringify({ timestamp: 'x' })],
+    ])(
+      'AC7: rejects with PriceUnavailableException on %s, never falling back to averagePrice, and never opens a DB transaction',
+      async (_label, cachedValue) => {
+        prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+        redis.get.mockResolvedValue(cachedValue);
+
+        await expect(
+          service.invest('user-1', 'AAPL', '100.00'),
+        ).rejects.toBeInstanceOf(PriceUnavailableException);
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it('AC4: rejects an amount below the "1.00" minimum with AmountBelowMinimumException before any price lookup or DB write', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+
+      await expect(
+        service.invest('user-1', 'AAPL', '0.50'),
+      ).rejects.toBeInstanceOf(AmountBelowMinimumException);
+
+      expect(redis.get).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('AC12: throws PortfolioNotFoundException when the user has no Portfolio row', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.invest('user-without-portfolio', 'AAPL', '100.00'),
+      ).rejects.toBeInstanceOf(PortfolioNotFoundException);
+
+      expect(redis.get).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,7 +1,19 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  investSchema,
   transactionsQuerySchema,
   type HoldingDto,
+  type InvestInput,
   type PaginatedTransactionsDto,
   type PortfolioSummaryDto,
   type TransactionsQuery,
@@ -11,9 +23,10 @@ import {
   AccessTokenGuard,
   type RequestWithUser,
 } from '../auth/guards/access-token.guard';
+import { InvestThrottlerGuard } from './guards/invest-throttler.guard';
 import { PortfolioService } from './portfolio.service';
 
-/** AC11: every route here requires a valid access token. */
+/** AC11 (spec 004) / AC13 (spec 005): every route here requires a valid access token. */
 @Controller('portfolio')
 @UseGuards(AccessTokenGuard)
 export class PortfolioController {
@@ -40,5 +53,23 @@ export class PortfolioController {
       query.page,
       query.limit,
     );
+  }
+
+  /**
+   * Spec 005 AC1-AC17: commits simulated cash to a symbol. Guarded by the
+   * class-level `AccessTokenGuard` (AC13) plus `InvestThrottlerGuard`
+   * (AC14/AC15, 30 requests/hour/user by default) — the throttler guard
+   * runs after `AccessTokenGuard` since class-level guards execute before
+   * method-level ones, so `req.user` is already populated when its tracker
+   * reads `req.user.sub`.
+   */
+  @Post('invest')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(InvestThrottlerGuard)
+  invest(
+    @Req() req: RequestWithUser,
+    @Body(new ZodValidationPipe(investSchema)) body: InvestInput,
+  ): Promise<PortfolioSummaryDto> {
+    return this.portfolioService.invest(req.user.sub, body.symbol, body.amount);
   }
 }

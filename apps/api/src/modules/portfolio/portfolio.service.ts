@@ -12,6 +12,9 @@ import { Prisma, type Transaction } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { PortfolioNotFoundException } from '../../common/exceptions/portfolio-not-found.exception';
+import { AmountBelowMinimumException } from '../../common/exceptions/amount-below-minimum.exception';
+import { InsufficientFundsException } from '../../common/exceptions/insufficient-funds.exception';
+import { PriceUnavailableException } from '../../common/exceptions/price-unavailable.exception';
 
 interface CachedQuote {
   price?: string;
@@ -37,6 +40,9 @@ const ZERO = new Prisma.Decimal(0);
 
 /** AC18: limit above this is clamped, not rejected. */
 const MAX_TRANSACTIONS_LIMIT = 100;
+
+/** Spec 005 design decision 4: pinned business minimum for a single invest. */
+const MIN_INVEST_AMOUNT = new Prisma.Decimal('1.00');
 
 /**
  * Spec 004 section 4, design decision 2: this service never calls Finnhub —
@@ -163,6 +169,110 @@ export class PortfolioService {
       total,
       totalPages: total === 0 ? 0 : Math.ceil(total / clampedLimit),
     };
+  }
+
+  /**
+   * Spec 005: commits simulated cash to a symbol. AC1/AC8-AC11: on success,
+   * exactly one `Transaction` (`type: "buy"`) is created and the matching
+   * `Holding` is created or weighted-average-updated, inside one
+   * `prisma.$transaction` so a failure partway rolls back every write
+   * (implementation notes section 7).
+   */
+  async invest(
+    userId: string,
+    symbol: string,
+    amount: string,
+  ): Promise<PortfolioSummaryDto> {
+    // AC12: no Portfolio row is a data-integrity 404, checked first.
+    const portfolio = await this.findPortfolioOrThrow(userId);
+
+    // AC2/AC3: symbol enum membership and amount format are already
+    // guaranteed by `investSchema`'s `ZodValidationPipe` before this method
+    // runs — only the business-rule minimum is this method's job (AC4).
+    const amountDecimal = new Prisma.Decimal(amount);
+    if (amountDecimal.lessThan(MIN_INVEST_AMOUNT)) {
+      throw new AmountBelowMinimumException();
+    }
+
+    // AC7/design decision 1: a cache miss/expiry/Redis-down all reject the
+    // request outright — never fall back to a holding's `averagePrice` the
+    // way the read-only valuation methods above do.
+    const cached = await this.redis.get(`market:quote:${symbol}`);
+    const purchasePrice = this.parseCachedPrice(cached)?.toDecimalPlaces(2);
+    if (!purchasePrice) {
+      throw new PriceUnavailableException();
+    }
+
+    // AC5: purchased quantity rounded half-up to 6 decimals; the amount
+    // actually deducted from cashBalance is always the exact requested
+    // value, never recomputed from this rounded quantity (section 4,
+    // design decision 5).
+    const purchasedQuantity = amountDecimal
+      .dividedBy(purchasePrice)
+      .toDecimalPlaces(6);
+
+    await this.prisma.$transaction(async (tx) => {
+      // AC5/AC6/design decision 2: balance check + deduction as one atomic
+      // conditional update — never a separate read followed by a write, so
+      // two concurrent requests can never both succeed against the same
+      // balance.
+      const deduction = await tx.portfolio.updateMany({
+        where: { id: portfolio.id, cashBalance: { gte: amountDecimal } },
+        data: { cashBalance: { decrement: amountDecimal } },
+      });
+      if (deduction.count === 0) {
+        throw new InsufficientFundsException();
+      }
+
+      const existingHolding = await tx.holding.findUnique({
+        where: {
+          portfolioId_symbol: { portfolioId: portfolio.id, symbol },
+        },
+      });
+
+      if (existingHolding) {
+        // AC9: weighted-average update in place — never a second row for
+        // the same (portfolioId, symbol).
+        const newQuantity = existingHolding.quantity.plus(purchasedQuantity);
+        const newAveragePrice = existingHolding.quantity
+          .times(existingHolding.averagePrice)
+          .plus(purchasedQuantity.times(purchasePrice))
+          .dividedBy(newQuantity)
+          .toDecimalPlaces(2);
+
+        await tx.holding.update({
+          where: { id: existingHolding.id },
+          data: { quantity: newQuantity, averagePrice: newAveragePrice },
+        });
+      } else {
+        // AC8: exactly one new Holding row for a symbol not yet held.
+        await tx.holding.create({
+          data: {
+            portfolioId: portfolio.id,
+            symbol,
+            quantity: purchasedQuantity,
+            averagePrice: purchasePrice,
+          },
+        });
+      }
+
+      // AC10: exactly one new completed "buy" Transaction row.
+      await tx.transaction.create({
+        data: {
+          portfolioId: portfolio.id,
+          type: 'buy',
+          symbol,
+          quantity: purchasedQuantity,
+          price: purchasePrice,
+          amount: amountDecimal,
+          status: 'completed',
+        },
+      });
+    });
+
+    // AC1/AC17: reuses the exact PortfolioSummaryDto shape spec 004 already
+    // defined, now reflecting this invest's persisted state.
+    return this.getSummary(userId);
   }
 
   private toTransactionDto(record: Transaction): TransactionDto {

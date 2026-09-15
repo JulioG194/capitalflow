@@ -163,6 +163,24 @@ export class AuthService {
     return { accessToken, refreshToken: newToken.raw };
   }
 
+  /**
+   * AC18/AC19: revokes the presented refresh token, if any. Idempotent and
+   * silent by design — a missing token, an unknown token, and an
+   * already-revoked token are all treated identically (simply "nothing
+   * left to revoke"), so a caller can never learn from this endpoint's
+   * behavior whether a given cookie ever corresponded to a real session.
+   */
+  async logout(rawToken: string | undefined): Promise<void> {
+    if (!rawToken) {
+      return;
+    }
+
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: hashToken(rawToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   /** AC14/AC16: revokes every currently-active refresh token for a user. */
   private async revokeAllRefreshTokensForUser(userId: string): Promise<void> {
     await this.prisma.refreshToken.updateMany({

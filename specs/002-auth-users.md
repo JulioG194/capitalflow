@@ -35,7 +35,7 @@ this system will be publicly reachable on the internet as a portfolio artifact.
 - [ ] **AC5**: Given a `POST /auth/register` with extra/unexpected fields (e.g. `{"role":"admin"}`), when the request is processed, then the global `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`) rejects the request and no such field is persisted.
 
 ### Login
-- [ ] **AC6**: Given a `POST /auth/login` with correct email and password, when the request is processed, then the API responds `200` with a short-lived access token (JWT, RS256, 15-minute expiry) in the response body and sets an `HttpOnly` refresh-token cookie (7-day expiry, scoped to the `/auth/refresh` path).
+- [ ] **AC6**: Given a `POST /auth/login` with correct email and password, when the request is processed, then the API responds `200` with a short-lived access token (JWT, RS256, 15-minute expiry) in the response body and sets an `HttpOnly` refresh-token cookie (7-day expiry, scoped to the `/auth` path — see the note under AC33 for why this is `/auth` rather than `/auth/refresh`).
 - [ ] **AC7**: Given a `POST /auth/login` with a correct email but an incorrect password, when the request is processed, then the API responds `401 Unauthorized` with a generic message that does not indicate the password (specifically) was wrong.
 - [ ] **AC8**: Given a `POST /auth/login` with an email that does not exist, when the request is processed, then the API responds with the identical status code and message body as AC7 — indistinguishable from a wrong-password response.
 - [ ] **AC9**: Given the non-existent-email path (AC8), when a login attempt is processed, then the service performs a dummy Argon2id hash comparison against a fixed reference hash before responding, so the code path does the same computational work as the existing-user path (mitigates timing-based user enumeration).
@@ -72,7 +72,17 @@ this system will be publicly reachable on the internet as a portfolio artifact.
 - [ ] **AC30**: Given 5 `POST /auth/login` requests from the same IP within a rolling 60-second window, when a 6th request is made within that window, then the API responds `429 Too Many Requests` with a `Retry-After` header.
 - [ ] **AC31**: Given the rate-limit window has elapsed since the last throttled response, when a subsequent login request is made from the same IP, then the API processes it normally.
 - [ ] **AC32**: Given any error response from an `/auth/*` endpoint, when the response body is inspected, then it never contains a raw Prisma error message, stack trace, or SQL detail (all persistence errors are mapped to domain exceptions via an exception filter before reaching the client).
-- [ ] **AC33**: Given the refresh-token cookie set by the API, when inspected, then it carries `HttpOnly`, `Secure` (in production), and `SameSite=Strict` or `Lax` attributes, and is scoped to the `/auth/refresh` path so it is not transmitted on unrelated requests.
+- [ ] **AC33**: Given the refresh-token cookie set by the API, when inspected, then it carries `HttpOnly`, `Secure` (in production), and `SameSite=Strict` or `Lax` attributes, and is scoped to the `/auth` path so it is not transmitted on unrelated (non-auth) requests.
+
+  > **Implementation note (corrected during spec 002 implementation):** this
+  > was originally written as `/auth/refresh`. That literal scope is
+  > incompatible with AC18 — a cookie whose `Path` is `/auth/refresh` is
+  > never sent by the browser on a `POST /auth/logout` request (browsers
+  > only attach a cookie to requests at or under its `Path`), so logout
+  > could never read the token it's supposed to revoke. `Path=/auth` keeps
+  > the actual security intent (never sent to unrelated, non-auth routes
+  > like a future `/portfolios/*`) while remaining present on
+  > `/auth/login`, `/auth/refresh`, and `/auth/logout`.
 
 ### Email Service Abstraction
 - [ ] **AC34**: Given the `EmailService` interface, when the forgot-password flow triggers a send, then the concrete adapter used in this spec logs the recipient, subject, and reset link to the server log/console instead of dispatching a real email.

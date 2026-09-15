@@ -420,4 +420,83 @@ describe('Auth (e2e)', () => {
       );
     });
   });
+
+  describe('POST /auth/logout', () => {
+    const password = 'correcthorse1';
+
+    it('AC18: revokes a valid refresh session, clears the cookie, and responds 200', async () => {
+      const email = `logout-ac18-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Logout Fixture' })
+        .expect(201);
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+      const refreshCookie = (
+        loginResponse.headers['set-cookie'] as unknown as string[]
+      )
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+
+      const logoutResponse = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+
+      expect(logoutResponse.body).toEqual({});
+      const setCookie = logoutResponse.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      expect(setCookie.some((c) => c.startsWith('cf_refresh_token=;'))).toBe(
+        true,
+      );
+
+      // The revoked session can no longer be used to refresh.
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', refreshCookie)
+        .expect(401);
+    });
+
+    it('AC19: is idempotent — 200 with no cookie at all', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .expect(200);
+
+      expect(response.body).toEqual({});
+    });
+
+    it('AC19: is idempotent — 200 when the presented cookie is already revoked', async () => {
+      const email = `logout-ac19-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Logout Fixture' })
+        .expect(201);
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+      const refreshCookie = (
+        loginResponse.headers['set-cookie'] as unknown as string[]
+      )
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+
+      await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+
+      const secondResponse = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+
+      expect(secondResponse.body).toEqual({});
+    });
+  });
 });

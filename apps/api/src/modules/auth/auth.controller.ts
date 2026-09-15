@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import {
   AUTH_REFRESH_COOKIE_NAME,
   type UserDto,
@@ -19,6 +19,7 @@ import type { EnvConfig } from '../../config/env.schema';
 import {
   buildClearRefreshCookieOptions,
   buildRefreshCookieOptions,
+  readRefreshCookie,
 } from './auth.cookies';
 import { AuthService } from './auth.service';
 import {
@@ -105,5 +106,27 @@ export class AuthController {
       );
       throw error;
     }
+  }
+
+  /**
+   * AC18/AC19: intentionally unguarded — a missing or already-revoked
+   * cookie still responds `200` (idempotent logout), never a `401`, so a
+   * caller can't use this endpoint's status code to probe whether a
+   * session existed.
+   */
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Record<string, never>> {
+    await this.authService.logout(readRefreshCookie(req));
+
+    res.clearCookie(
+      AUTH_REFRESH_COOKIE_NAME,
+      buildClearRefreshCookieOptions(this.config),
+    );
+
+    return {};
   }
 }

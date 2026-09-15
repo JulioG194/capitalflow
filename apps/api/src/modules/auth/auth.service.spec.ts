@@ -17,6 +17,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
 import { InvalidCredentialsException } from '../../common/exceptions/invalid-credentials.exception';
 import { InvalidRefreshTokenException } from '../../common/exceptions/invalid-refresh-token.exception';
+import { hashToken } from './auth.crypto';
 
 interface UserRecord {
   id: string;
@@ -398,6 +399,33 @@ describe('AuthService', () => {
         InvalidRefreshTokenException,
       );
       expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logout', () => {
+    it('AC18: revokes the presented token', async () => {
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.logout('raw-token');
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { tokenHash: hashToken('raw-token'), revokedAt: null },
+        data: expect.objectContaining({
+          revokedAt: expect.any(Date) as unknown,
+        }) as unknown,
+      });
+    });
+
+    it('AC19: is a no-op (no DB call) when no token is presented', async () => {
+      await service.logout(undefined);
+
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('AC19: resolves without throwing when the token is already revoked/unknown', async () => {
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.logout('raw-token')).resolves.toBeUndefined();
     });
   });
 });

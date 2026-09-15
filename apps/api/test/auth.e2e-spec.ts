@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaExceptionFilter } from './../src/common/filters/prisma-exception.filter';
 import { PrismaService } from './../src/prisma/prisma.service';
+import { hashToken } from './../src/modules/auth/auth.crypto';
 
 interface UserResponseBody {
   id: string;
@@ -30,6 +32,7 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -266,6 +269,155 @@ describe('Auth (e2e)', () => {
         .expect(401);
 
       expect(wrongPasswordResponse.body).toEqual(badPasswordResponse.body);
+    });
+  });
+
+  describe('POST /auth/refresh', () => {
+    const password = 'correcthorse1';
+
+    async function registerAndLogin(email: string): Promise<{
+      accessToken: string;
+      refreshCookie: string;
+    }> {
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Refresh Fixture' })
+        .expect(201);
+
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+
+      const setCookie = loginResponse.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      const refreshCookie = setCookie
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+
+      return {
+        accessToken: (loginResponse.body as { accessToken: string })
+          .accessToken,
+        refreshCookie,
+      };
+    }
+
+    it('AC12: rotates a valid refresh token — 200, new access token, new rotated cookie', async () => {
+      const email = `refresh-ac12-${Date.now()}@example.com`;
+      const { refreshCookie } = await registerAndLogin(email);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+
+      const body = response.body as { accessToken: string };
+      // Note: a fresh access token issued within the same second as the
+      // login one can be byte-identical (JWT signing is deterministic for
+      // an identical payload+iat) — that's expected, not a bug, so this
+      // only asserts shape rather than inequality with the original token.
+      expect(body.accessToken.split('.')).toHaveLength(3);
+
+      const setCookie = response.headers['set-cookie'] as unknown as string[];
+      const newRefreshCookie = setCookie.find((c) =>
+        c.startsWith('cf_refresh_token='),
+      );
+      expect(newRefreshCookie).toBeDefined();
+      expect(newRefreshCookie).not.toBe(refreshCookie);
+    });
+
+    it('AC13: an expired refresh token is rejected with 401 and the cookie is cleared', async () => {
+      const email = `refresh-ac13-${Date.now()}@example.com`;
+      const { refreshCookie } = await registerAndLogin(email);
+
+      const rawToken = refreshCookie.split('=')[1];
+      await prisma.refreshToken.updateMany({
+        where: { tokenHash: hashToken(rawToken) },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', refreshCookie)
+        .expect(401);
+
+      expect((response.body as ErrorResponseBody).code).toBe(
+        'INVALID_REFRESH_TOKEN',
+      );
+      const setCookie = response.headers['set-cookie'] as unknown as string[];
+      expect(setCookie.some((c) => c.startsWith('cf_refresh_token=;'))).toBe(
+        true,
+      );
+    });
+
+    it('AC14/AC15: replaying an already-rotated token revokes every session for that user', async () => {
+      const email = `refresh-ac14-${Date.now()}@example.com`;
+      const { refreshCookie: firstCookie } = await registerAndLogin(email);
+
+      const rotateResponse = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', firstCookie)
+        .expect(200);
+      const secondCookie = (
+        rotateResponse.headers['set-cookie'] as unknown as string[]
+      )
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+
+      // Replaying the now-rotated first cookie is a proven reuse (AC14).
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', firstCookie)
+        .expect(401);
+
+      // AC15: the full revocation triggered above must also invalidate the
+      // session that "legitimately" won the rotation — no refresh token
+      // this user holds can produce a new session without a fresh login.
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', secondCookie)
+        .expect(401);
+    });
+
+    it('AC16: two simultaneous refreshes with the same token — at most one succeeds, and the win is later invalidated by the reuse-driven full revocation', async () => {
+      const email = `refresh-ac16-${Date.now()}@example.com`;
+      const { refreshCookie } = await registerAndLogin(email);
+
+      const [first, second] = await Promise.all([
+        request(app.getHttpServer())
+          .post('/auth/refresh')
+          .set('Cookie', refreshCookie),
+        request(app.getHttpServer())
+          .post('/auth/refresh')
+          .set('Cookie', refreshCookie),
+      ]);
+
+      const statuses = [first.status, second.status].sort();
+      expect(statuses).toEqual([200, 401]);
+
+      const winner = first.status === 200 ? first : second;
+      const winnerCookie = (winner.headers['set-cookie'] as unknown as string[])
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+
+      // The race loser is treated as a reuse: full revocation nukes the
+      // winner's brand-new token too.
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', winnerCookie)
+        .expect(401);
+    });
+
+    it('AC17: no refresh cookie present responds 401 without any rotation side effects', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .expect(401);
+
+      expect((response.body as ErrorResponseBody).code).toBe(
+        'INVALID_REFRESH_TOKEN',
+      );
     });
   });
 });

@@ -8,6 +8,7 @@ import { ARGON2_OPTIONS, DUMMY_ARGON2_HASH } from '../../config/argon2.config';
 import type { EnvConfig } from '../../config/env.schema';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
 import { InvalidCredentialsException } from '../../common/exceptions/invalid-credentials.exception';
+import { InvalidRefreshTokenException } from '../../common/exceptions/invalid-refresh-token.exception';
 import { generateRawToken, hashToken } from './auth.crypto';
 import type { AccessTokenPayload } from './auth-token.types';
 import type { RegisterDto } from './dto/register.dto';
@@ -18,6 +19,16 @@ export interface LoginResult {
   accessToken: string;
   refreshToken: string;
   user: Pick<UserDto, 'id' | 'email' | 'name'>;
+}
+
+export interface RefreshResult {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface IssuedRefreshToken {
+  raw: string;
+  id: string;
 }
 
 @Injectable()
@@ -84,9 +95,80 @@ export class AuthService {
 
     return {
       accessToken,
-      refreshToken,
+      refreshToken: refreshToken.raw,
       user: { id: user.id, email: user.email, name: user.name },
     };
+  }
+
+  /**
+   * AC12-17: rotates a refresh token, or detects and reacts to reuse.
+   *
+   * - Unknown token, expired token, or a token already marked revoked
+   *   (a "replay" of an already-rotated token, AC14) all fail (AC13/AC17
+   *   callers never reach here without a cookie; see `RefreshTokenGuard`).
+   * - A revoked-at-read-time token is a proven reuse: **all** of that
+   *   user's refresh tokens are revoked before responding (AC14).
+   * - The rotation itself is an atomic "mark used and check previous
+   *   state" conditional update (`updateMany` with `revokedAt: null` in
+   *   its `where`, per spec section 7): if two requests race on the same
+   *   token, Postgres serializes the two `UPDATE`s and only the first to
+   *   commit sees `count === 1`; the second re-evaluates the predicate
+   *   against the now-revoked row and gets `count === 0`. That loser is
+   *   treated exactly like a proven reuse — full revocation, including the
+   *   spare token it had already created before losing the race (AC16).
+   */
+  async refresh(rawToken: string): Promise<RefreshResult> {
+    const tokenHash = hashToken(rawToken);
+    const existing = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!existing) {
+      throw new InvalidRefreshTokenException();
+    }
+
+    if (existing.revokedAt) {
+      await this.revokeAllRefreshTokensForUser(existing.userId);
+      throw new InvalidRefreshTokenException();
+    }
+
+    if (existing.expiresAt.getTime() < Date.now()) {
+      throw new InvalidRefreshTokenException();
+    }
+
+    // Defensive (spec Edge Cases: "refresh token cookie sent but its user
+    // was deleted") — not a currently reachable state via any supported
+    // operation, but handled the same as any other invalid token.
+    const user = await this.prisma.user.findUnique({
+      where: { id: existing.userId },
+    });
+    if (!user) {
+      throw new InvalidRefreshTokenException();
+    }
+
+    const newToken = await this.issueRefreshToken(user.id);
+
+    const rotation = await this.prisma.refreshToken.updateMany({
+      where: { id: existing.id, revokedAt: null },
+      data: { revokedAt: new Date(), replacedByTokenId: newToken.id },
+    });
+
+    if (rotation.count === 0) {
+      await this.revokeAllRefreshTokensForUser(user.id);
+      throw new InvalidRefreshTokenException();
+    }
+
+    const accessToken = await this.issueAccessToken(user);
+
+    return { accessToken, refreshToken: newToken.raw };
+  }
+
+  /** AC14/AC16: revokes every currently-active refresh token for a user. */
+  private async revokeAllRefreshTokensForUser(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   /** AC10: signs a short-lived RS256 access token carrying `sub`/`email`. */
@@ -101,7 +183,7 @@ export class AuthService {
    * as an `HttpOnly` cookie. The raw value is never itself stored or
    * returned in a JSON body.
    */
-  private async issueRefreshToken(userId: string): Promise<string> {
+  private async issueRefreshToken(userId: string): Promise<IssuedRefreshToken> {
     const rawToken = generateRawToken();
     const refreshTtlDays = this.config.get('JWT_REFRESH_TTL_DAYS', {
       infer: true,
@@ -110,7 +192,7 @@ export class AuthService {
       Date.now() + refreshTtlDays * 24 * 60 * 60 * 1000,
     );
 
-    await this.prisma.refreshToken.create({
+    const record = await this.prisma.refreshToken.create({
       data: {
         userId,
         tokenHash: hashToken(rawToken),
@@ -118,7 +200,7 @@ export class AuthService {
       },
     });
 
-    return rawToken;
+    return { raw: rawToken, id: record.id };
   }
 
   private toUserDto(user: User): UserDto {

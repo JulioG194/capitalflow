@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
 import { InvalidCredentialsException } from '../../common/exceptions/invalid-credentials.exception';
+import { InvalidRefreshTokenException } from '../../common/exceptions/invalid-refresh-token.exception';
 
 interface UserRecord {
   id: string;
@@ -38,28 +39,72 @@ interface RefreshTokenCreateArgs {
   data: { userId: string; tokenHash: string; expiresAt: Date };
 }
 
+interface RefreshTokenRecord {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  replacedByTokenId: string | null;
+  createdAt: Date;
+}
+
+interface RefreshTokenFindUniqueArgs {
+  where: { tokenHash: string };
+}
+
+interface RefreshTokenUpdateManyArgs {
+  where: { id?: string; userId?: string; revokedAt: null };
+  data: { revokedAt: Date; replacedByTokenId?: string };
+}
+
+interface UserFindUniqueByIdArgs {
+  where: { id: string };
+}
+
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: {
     user: {
-      findUnique: jest.Mock<Promise<UserRecord | null>, [FindUniqueArgs]>;
+      findUnique: jest.Mock<
+        Promise<UserRecord | null>,
+        [FindUniqueArgs | UserFindUniqueByIdArgs]
+      >;
       create: jest.Mock<Promise<UserRecord>, [CreateArgs]>;
     };
     refreshToken: {
       create: jest.Mock<Promise<{ id: string }>, [RefreshTokenCreateArgs]>;
+      findUnique: jest.Mock<
+        Promise<RefreshTokenRecord | null>,
+        [RefreshTokenFindUniqueArgs]
+      >;
+      updateMany: jest.Mock<
+        Promise<{ count: number }>,
+        [RefreshTokenUpdateManyArgs]
+      >;
     };
   };
 
   beforeEach(async () => {
     prisma = {
       user: {
-        findUnique: jest.fn<Promise<UserRecord | null>, [FindUniqueArgs]>(),
+        findUnique: jest.fn<
+          Promise<UserRecord | null>,
+          [FindUniqueArgs | UserFindUniqueByIdArgs]
+        >(),
         create: jest.fn<Promise<UserRecord>, [CreateArgs]>(),
       },
       refreshToken: {
         create: jest
           .fn<Promise<{ id: string }>, [RefreshTokenCreateArgs]>()
           .mockResolvedValue({ id: 'refresh-token-1' }),
+        findUnique: jest.fn<
+          Promise<RefreshTokenRecord | null>,
+          [RefreshTokenFindUniqueArgs]
+        >(),
+        updateMany: jest
+          .fn<Promise<{ count: number }>, [RefreshTokenUpdateManyArgs]>()
+          .mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -243,6 +288,116 @@ describe('AuthService', () => {
       expect(verifyMock).toHaveBeenCalledTimes(1);
       const [hashArg] = verifyMock.mock.calls[0];
       expect(hashArg).not.toBe(userRecord.passwordHash);
+    });
+  });
+
+  describe('refresh', () => {
+    const userRecord: UserRecord = {
+      id: 'user-1',
+      email: 'user@example.com',
+      passwordHash: 'irrelevant-hash',
+      name: 'Ada Lovelace',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+
+    function activeRefreshToken(
+      overrides: Partial<RefreshTokenRecord> = {},
+    ): RefreshTokenRecord {
+      return {
+        id: 'refresh-token-old',
+        userId: userRecord.id,
+        tokenHash: 'irrelevant-hash-value',
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        revokedAt: null,
+        replacedByTokenId: null,
+        createdAt: new Date(),
+        ...overrides,
+      };
+    }
+
+    beforeEach(() => {
+      prisma.user.findUnique.mockImplementation((args) => {
+        if ('id' in args.where) {
+          return Promise.resolve(
+            args.where.id === userRecord.id ? userRecord : null,
+          );
+        }
+        return Promise.resolve(null);
+      });
+    });
+
+    it('AC12: rotates a valid token — revokes the old one and returns a fresh pair', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(activeRefreshToken());
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.refresh('raw-token');
+
+      expect(result.accessToken).toBe('signed.jwt.token');
+      expect(typeof result.refreshToken).toBe('string');
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 'refresh-token-old', revokedAt: null },
+        data: expect.objectContaining({
+          replacedByTokenId: 'refresh-token-1',
+        }) as unknown,
+      });
+    });
+
+    it('AC13: throws on an expired token without a full revocation', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        activeRefreshToken({ expiresAt: new Date(Date.now() - 1000) }),
+      );
+
+      await expect(service.refresh('raw-token')).rejects.toBeInstanceOf(
+        InvalidRefreshTokenException,
+      );
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("AC14: replaying an already-rotated token revokes all of that user's tokens", async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        activeRefreshToken({ revokedAt: new Date() }),
+      );
+
+      await expect(service.refresh('raw-token')).rejects.toBeInstanceOf(
+        InvalidRefreshTokenException,
+      );
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: userRecord.id, revokedAt: null },
+        data: expect.objectContaining({
+          revokedAt: expect.any(Date) as unknown,
+        }) as unknown,
+      });
+    });
+
+    it('AC16: loses the rotation race (count 0) and triggers full revocation instead of returning a token pair', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(activeRefreshToken());
+      // First call is the CAS rotation attempt (loses the race); second call
+      // (from `revokeAllRefreshTokensForUser`) is the full-revocation sweep.
+      prisma.refreshToken.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 2 });
+
+      await expect(service.refresh('raw-token')).rejects.toBeInstanceOf(
+        InvalidRefreshTokenException,
+      );
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { userId: userRecord.id, revokedAt: null },
+        data: expect.objectContaining({
+          revokedAt: expect.any(Date) as unknown,
+        }) as unknown,
+      });
+    });
+
+    it('unknown token hash throws without touching updateMany', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(null);
+
+      await expect(service.refresh('raw-token')).rejects.toBeInstanceOf(
+        InvalidRefreshTokenException,
+      );
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
     });
   });
 });

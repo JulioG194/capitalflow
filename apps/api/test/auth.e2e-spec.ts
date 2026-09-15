@@ -101,6 +101,40 @@ describe('Auth (e2e)', () => {
       expect(response.body).not.toHaveProperty('refreshToken');
     });
 
+    it('spec 004 AC1/AC2: creates a Portfolio with $10,000 cash and one completed deposit Transaction', async () => {
+      const email = `spec004-ac1-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password: 'correcthorse1', name: 'Ada Lovelace' })
+        .expect(201);
+
+      const userId = (response.body as UserResponseBody).id;
+
+      const portfolio = await prisma.portfolio.findUnique({
+        where: { userId },
+      });
+      expect(portfolio).not.toBeNull();
+      // Decimal#toString() strips trailing zeros (e.g. "10000", not
+      // "10000.00") — DTO-facing code must use .toFixed(2), never
+      // .toString(), whenever a Decimal is serialized as a money string.
+      expect(portfolio?.cashBalance.toFixed(2)).toBe('10000.00');
+
+      const transactions = await prisma.transaction.findMany({
+        where: { portfolioId: portfolio?.id },
+      });
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]).toMatchObject({
+        type: 'deposit',
+        status: 'completed',
+        symbol: null,
+        quantity: null,
+        price: null,
+      });
+      expect(transactions[0]?.amount.toFixed(2)).toBe('10000.00');
+    });
+
     it('AC2: rejects a duplicate email (case-insensitive) with 409 EMAIL_ALREADY_EXISTS', async () => {
       const email = `ac2-${Date.now()}@example.com`;
       registeredEmails.push(email);

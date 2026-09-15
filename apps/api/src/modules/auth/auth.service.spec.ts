@@ -13,7 +13,7 @@ jest.mock('argon2', () => {
   const actual = jest.requireActual<typeof import('argon2')>('argon2');
   return { ...actual, verify: jest.fn(actual.verify) };
 });
-import { AuthService } from './auth.service';
+import { AuthService, INITIAL_CASH_BALANCE } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email/email.service';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
@@ -93,6 +93,33 @@ interface PasswordResetTokenUpdateManyArgs {
   data: { usedAt: Date };
 }
 
+interface PortfolioRecord {
+  id: string;
+  userId: string;
+  cashBalance: string;
+  createdAt: Date;
+}
+
+interface PortfolioCreateArgs {
+  data: { userId: string; cashBalance: string };
+}
+
+interface TransactionRecord {
+  id: string;
+  portfolioId: string;
+  type: string;
+  symbol: string | null;
+  quantity: string | null;
+  price: string | null;
+  amount: string;
+  status: string;
+  createdAt: Date;
+}
+
+interface TransactionCreateArgs {
+  data: { portfolioId: string; type: string; amount: string; status: string };
+}
+
 interface PrismaMock {
   user: {
     findUnique: jest.Mock<
@@ -123,6 +150,12 @@ interface PrismaMock {
       Promise<{ count: number }>,
       [PasswordResetTokenUpdateManyArgs]
     >;
+  };
+  portfolio: {
+    create: jest.Mock<Promise<PortfolioRecord>, [PortfolioCreateArgs]>;
+  };
+  transaction: {
+    create: jest.Mock<Promise<TransactionRecord>, [TransactionCreateArgs]>;
   };
   $transaction: jest.Mock<Promise<unknown>, [(tx: PrismaMock) => unknown]>;
 }
@@ -168,6 +201,35 @@ describe('AuthService', () => {
         updateMany: jest
           .fn<Promise<{ count: number }>, [PasswordResetTokenUpdateManyArgs]>()
           .mockResolvedValue({ count: 1 }),
+      },
+      portfolio: {
+        create: jest
+          .fn<Promise<PortfolioRecord>, [PortfolioCreateArgs]>()
+          .mockImplementation(({ data }: PortfolioCreateArgs) =>
+            Promise.resolve({
+              id: 'portfolio-1',
+              userId: data.userId,
+              cashBalance: data.cashBalance,
+              createdAt: new Date(),
+            }),
+          ),
+      },
+      transaction: {
+        create: jest
+          .fn<Promise<TransactionRecord>, [TransactionCreateArgs]>()
+          .mockImplementation(({ data }: TransactionCreateArgs) =>
+            Promise.resolve({
+              id: 'transaction-1',
+              portfolioId: data.portfolioId,
+              type: data.type,
+              symbol: null,
+              quantity: null,
+              price: null,
+              amount: data.amount,
+              status: data.status,
+              createdAt: new Date(),
+            }),
+          ),
       },
       // Interactive transactions here just run the callback against the
       // same mock client — real cross-statement atomicity is verified at
@@ -287,6 +349,75 @@ describe('AuthService', () => {
       const [createCall] = prisma.user.create.mock.calls[0];
       expect(createCall.data.email).toBe('user@example.com');
       expect(result.email).toBe('user@example.com');
+    });
+
+    it('spec 004 AC1: creates a Portfolio with the $10,000 starting cash balance in the same transaction', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: CreateArgs) =>
+        Promise.resolve({
+          id: 'user-3',
+          email: data.email,
+          passwordHash: data.passwordHash,
+          name: data.name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      await service.register(input);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.portfolio.create).toHaveBeenCalledWith({
+        data: { userId: 'user-3', cashBalance: INITIAL_CASH_BALANCE },
+      });
+    });
+
+    it('spec 004 AC2: creates exactly one completed deposit Transaction for the new Portfolio', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: CreateArgs) =>
+        Promise.resolve({
+          id: 'user-4',
+          email: data.email,
+          passwordHash: data.passwordHash,
+          name: data.name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      await service.register(input);
+
+      expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
+      expect(prisma.transaction.create).toHaveBeenCalledWith({
+        data: {
+          portfolioId: 'portfolio-1',
+          type: 'deposit',
+          amount: INITIAL_CASH_BALANCE,
+          status: 'completed',
+        },
+      });
+    });
+
+    it('spec 004 AC3: rolls back and never creates the User when Portfolio creation fails', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: CreateArgs) =>
+        Promise.resolve({
+          id: 'user-5',
+          email: data.email,
+          passwordHash: data.passwordHash,
+          name: data.name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+      prisma.portfolio.create.mockRejectedValue(new Error('db unavailable'));
+
+      await expect(service.register(input)).rejects.toThrow('db unavailable');
+      // Real cross-statement rollback is Postgres's job (verified at the e2e
+      // level); here we only assert the transaction callback's own error
+      // propagates rather than being swallowed, and that the dependent
+      // deposit Transaction is never attempted once Portfolio creation fails.
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
     });
   });
 

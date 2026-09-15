@@ -22,6 +22,7 @@ model User {
 
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  portfolio           Portfolio?
 }
 
 model RefreshToken {
@@ -51,4 +52,64 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+/// One simulated portfolio per user (spec 004). `cashBalance` defaults to the
+/// $10,000 registration grant (AC1); every user's registration creates this
+/// row plus one matching `deposit` Transaction in the same DB transaction.
+model Portfolio {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cashBalance Decimal  @default(10000.00) @db.Decimal(14, 2)
+  createdAt   DateTime @default(now())
+
+  holdings     Holding[]
+  transactions Transaction[]
+}
+
+/// A held position in a portfolio. No write path exists yet in spec 004
+/// (read-only); the unique constraint is pinned now so a future "invest"
+/// spec's buy/sell writes are correct by construction.
+model Holding {
+  id           String    @id @default(uuid())
+  portfolioId  String
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  symbol       String
+  quantity     Decimal   @db.Decimal(18, 6)
+  averagePrice Decimal   @db.Decimal(14, 2)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([portfolioId, symbol])
+}
+
+enum TransactionType {
+  buy
+  sell
+  deposit
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+}
+
+/// `symbol`/`quantity`/`price` are null for `deposit` transactions (spec 004
+/// AC2). All monetary fields are Decimal in the DB and serialized as strings
+/// over the API — never a JS `number` (CLAUDE.md money convention).
+model Transaction {
+  id          String             @id @default(uuid())
+  portfolioId String
+  portfolio   Portfolio          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  symbol      String?
+  quantity    Decimal?           @db.Decimal(18, 6)
+  price       Decimal?           @db.Decimal(14, 2)
+  amount      Decimal            @db.Decimal(14, 2)
+  status      TransactionStatus
+  createdAt   DateTime           @default(now())
+
+  @@index([portfolioId, createdAt])
 }

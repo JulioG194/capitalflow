@@ -41,6 +41,9 @@ interface IssuedRefreshToken {
 export const GENERIC_PASSWORD_RESET_MESSAGE =
   'If that email exists, a password reset link has been sent.';
 
+/** Spec 004 AC1: one-time simulated cash grant on registration. */
+export const INITIAL_CASH_BALANCE = '10000.00';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -57,6 +60,11 @@ export class AuthService {
    * database's unique constraint (mapped by `PrismaExceptionFilter`) both
    * guard against duplicate emails (AC2), including the concurrent-request
    * race described in spec section 5.
+   *
+   * Spec 004 AC1-3: the `User`, its `Portfolio` (starting `cashBalance`
+   * `"10000.00"`), and the matching `deposit` `Transaction` are created in
+   * one `$transaction` — if any insert fails, Prisma rolls back all three,
+   * so a `User` row can never persist without its `Portfolio`.
    */
   async register(input: RegisterDto): Promise<UserDto> {
     const email = input.email.toLowerCase();
@@ -68,12 +76,32 @@ export class AuthService {
 
     const passwordHash = await argon2.hash(input.password, ARGON2_OPTIONS);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name: input.name,
-      },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          name: input.name,
+        },
+      });
+
+      const portfolio = await tx.portfolio.create({
+        data: {
+          userId: createdUser.id,
+          cashBalance: INITIAL_CASH_BALANCE,
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          portfolioId: portfolio.id,
+          type: 'deposit',
+          amount: INITIAL_CASH_BALANCE,
+          status: 'completed',
+        },
+      });
+
+      return createdUser;
     });
 
     return this.toUserDto(user);

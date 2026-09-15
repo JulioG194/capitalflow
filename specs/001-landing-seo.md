@@ -62,7 +62,13 @@ unauthenticated marketing pages; auth flows are in spec 002.
 
 ## 4. Technical Contracts
 
-### Routes (`apps/web/app/(marketing)/`)
+> **Note (2026-09-14)**: `apps/web` scaffolds with the `src/` directory convention
+> (`apps/web/src/app`, not `apps/web/app`). Next.js does not allow both `app/` and
+> `src/app/` to coexist, so all paths below are rooted at `apps/web/src/` instead
+> of `apps/web/`. This corrects the original paths drafted before the scaffold
+> commit (`a7908ea chore(web): scaffold Next.js 15 app`).
+
+### Routes (`apps/web/src/app/(marketing)/`)
 - `/` → `(marketing)/page.tsx`
 - `/how-it-works` → `(marketing)/how-it-works/page.tsx`
 - `/about` → `(marketing)/about/page.tsx`
@@ -72,12 +78,13 @@ unauthenticated marketing pages; auth flows are in spec 002.
 
 The `(marketing)` route group isolates layout from the authenticated `(app)` group.
 
-### Shared components (`apps/web/components/marketing/`)
+### Shared components (`apps/web/src/components/marketing/`)
 - `<MarketingNav />` — top navigation
 - `<MarketingFooter />` — footer with disclaimer + legal links
 - `<SimulatorBadge />` — visible disclaimer pill, reused on every marketing page
 - `<CTAButton />` — primary call-to-action button
 - `<FeatureCard />` — reusable card for feature sections
+- `<MobileNavToggle />` — client-only hamburger toggle used inside `<MarketingNav />` (the only `"use client"` component in this feature, per CLAUDE.md)
 
 ### Metadata
 Each page exports `generateMetadata` (or static `metadata`) with:
@@ -92,9 +99,9 @@ Each page exports `generateMetadata` (or static `metadata`) with:
 ```
 
 ### SEO files
-- `apps/web/app/sitemap.ts` — default export returns `MetadataRoute.Sitemap`
-- `apps/web/app/robots.ts` — default export returns `MetadataRoute.Robots`
-- `apps/web/app/layout.tsx` — sets `lang="es"`, base metadata, viewport
+- `apps/web/src/app/sitemap.ts` — default export returns `MetadataRoute.Sitemap`
+- `apps/web/src/app/robots.ts` — default export returns `MetadataRoute.Robots`
+- `apps/web/src/app/layout.tsx` — sets `lang="es"`, base metadata, viewport
 
 ### JSON-LD
 Homepage includes `<script type="application/ld+json">` with:

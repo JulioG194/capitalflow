@@ -1,6 +1,6 @@
 # Spec 001: Public Landing Pages (SEO)
 
-**Status**: draft
+**Status**: implemented
 **Author**: Julio
 **Created**: 2026-09-14
 **Related specs**: 002-auth-users (CTAs link to /login, /register)

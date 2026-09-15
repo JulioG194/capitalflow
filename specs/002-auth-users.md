@@ -83,6 +83,13 @@ this system will be publicly reachable on the internet as a portfolio artifact.
   > the actual security intent (never sent to unrelated, non-auth routes
   > like a future `/portfolios/*`) while remaining present on
   > `/auth/login`, `/auth/refresh`, and `/auth/logout`.
+  >
+  > **See also**: a second, non-sensitive `cf_has_session` cookie
+  > (`AUTH_SESSION_HINT_COOKIE_NAME`) is also set/cleared alongside this
+  > refresh cookie, scoped to `Path=/` rather than `/auth`. The `HttpOnly`,
+  > `Secure`, and `SameSite` attributes described here for the refresh
+  > cookie apply identically to it, but its `Path` is intentionally
+  > different — see the implementation note under AC39 for why.
 
 ### Email Service Abstraction
 - [ ] **AC34**: Given the `EmailService` interface, when the forgot-password flow triggers a send, then the concrete adapter used in this spec logs the recipient, subject, and reset link to the server log/console instead of dispatching a real email.
@@ -93,6 +100,38 @@ this system will be publicly reachable on the internet as a portfolio artifact.
 - [ ] **AC37**: Given a user submits the login form with invalid input (e.g. empty password), when the form is submitted, then client-side validation displays field errors and no network request is sent to the API.
 - [ ] **AC38**: Given a user submits valid login credentials but the API responds `401`, when the response is received, then the UI displays a single generic authentication-failure message (not the raw API error text) and does not indicate whether the email exists.
 - [ ] **AC39**: Given an unauthenticated request (no valid refresh-token cookie present) to any route under `/app/*`, when Next.js middleware inspects the request server-side, then it redirects to `/login`, preserving the originally requested path as a `redirect` query parameter.
+
+  > **Implementation note (added post-implementation, after a Playwright
+  > e2e run against a real browser surfaced the bug):** the wording above
+  > ("no valid refresh-token cookie present") cannot literally be what
+  > middleware checks. The real refresh-token cookie is deliberately scoped
+  > to `Path=/auth` (see the AC33 note above) specifically so it is never
+  > transmitted on unrelated routes — but that means it is *also* never
+  > transmitted on `/app/*` requests, by the same RFC 6265 path-matching
+  > rule, even immediately after a successful login. Middleware checking
+  > for that cookie's presence on `/app/*` would always conclude the user
+  > is unauthenticated and redirect-loop to `/login`.
+  >
+  > The fix is a second, purely presence-signaling cookie:
+  > `AUTH_SESSION_HINT_COOKIE_NAME` (`cf_has_session`, from
+  > `@capitalflow/shared-types`), set by `apps/api` with `Path=/` so it
+  > reaches every route, including `/app/*`. It is set/cleared by
+  > `apps/api` at every call site where the real refresh cookie is
+  > set/cleared (login success, refresh success, logout, refresh-failure),
+  > with the same `maxAge`/lifetime, so the two cookies always rise and
+  > fall together. It is `HttpOnly` (no legitimate reason for client JS to
+  > read it) and its value is a fixed, meaningless literal (`"1"`) — it
+  > carries no user id, token, or other identity material, so it cannot be
+  > used to forge a session, authenticate a request, or substitute for the
+  > real access/refresh tokens. Its only function is: "does a session
+  > plausibly exist, for redirect purposes." `middleware.ts` (AC39) checks
+  > for *this* cookie's presence, not the real refresh-token cookie's.
+  > Because it is presence-only and carries no security value, `apps/api`
+  > setting it does not weaken any guarantee made by AC12–AC17 or AC33 — a
+  > forged or replayed hint cookie only affects whether middleware lets a
+  > request reach an `/app/*` page; every real data/API call from that page
+  > still requires a genuinely valid access token and, on refresh, the
+  > real `Path=/auth`-scoped refresh cookie.
 - [ ] **AC40**: Given an authenticated user, when they navigate to `/app/profile`, then the page displays their current `name` and `email`, and provides a form (using the shared update-profile schema) to edit `name`.
 - [ ] **AC41**: Given a successful login, when the frontend handles the response, then the access token is held only in memory (e.g. React context/state) — never written to `localStorage`, `sessionStorage`, or a non-`HttpOnly` cookie.
 - [ ] **AC42**: Given an authenticated user clicks "logout" in the UI, when the action completes, then the frontend has called `POST /auth/logout`, cleared the in-memory access token, and navigated to `/login`.

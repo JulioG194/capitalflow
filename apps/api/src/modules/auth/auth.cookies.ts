@@ -4,6 +4,15 @@ import type { ConfigService } from '@nestjs/config';
 import type { EnvConfig } from '../../config/env.schema';
 
 /**
+ * Fixed literal value for the session-hint cookie (see
+ * `AUTH_SESSION_HINT_COOKIE_NAME` in `@capitalflow/shared-types`). It is
+ * intentionally not derived from any token/user data — its only job is to
+ * be present or absent, never to carry information that could be replayed
+ * or used to forge a session.
+ */
+export const SESSION_HINT_COOKIE_VALUE = '1';
+
+/**
  * Cookie `Path` scope for the refresh-token cookie.
  *
  * Spec 002 AC6/AC33 originally specified `/auth/refresh`, but that literal
@@ -54,6 +63,63 @@ export function buildClearRefreshCookieOptions(
     secure: config.get('NODE_ENV', { infer: true }) === 'production',
     sameSite: 'lax',
     path: REFRESH_COOKIE_PATH,
+  };
+}
+
+/**
+ * Cookie attributes for the "session hint" cookie (see
+ * `AUTH_SESSION_HINT_COOKIE_NAME` in `@capitalflow/shared-types`). This is
+ * a deliberate second, non-sensitive cookie — NOT a relaxation of the real
+ * refresh cookie's `Path=/auth` scope.
+ *
+ * Why it exists: `apps/web`'s `middleware.ts` (AC39) needs to decide,
+ * server-side, whether to redirect an unauthenticated `/app/*` request to
+ * `/login`. The real refresh cookie is intentionally scoped to `Path=/auth`
+ * (see the note above `REFRESH_COOKIE_PATH`), so per RFC 6265 path-matching
+ * the browser never sends it on a `/app/*` request — middleware can't see
+ * it there even immediately after a successful login. This hint cookie is
+ * `path: '/'` so it *is* visible to middleware on every route, while the
+ * real refresh token keeps its tight scope.
+ *
+ * Why it's safe: the value is the fixed literal `SESSION_HINT_COOKIE_VALUE`
+ * ("1"), never a token, user id, or anything derived from one. Possessing
+ * or forging this cookie's value grants no access by itself — it cannot be
+ * exchanged for an access token, presented to any protected endpoint, or
+ * used in place of the real refresh token. At worst, a forged hint cookie
+ * causes middleware to let a request through to an `/app/*` page, which
+ * then still fails to load any real data because the actual API calls
+ * require a valid access token/refresh cookie that this cookie cannot
+ * provide. It is `httpOnly: true` because there is no legitimate reason
+ * for client-side JS to ever read it — keeping it HttpOnly avoids the
+ * temptation to build client logic that depends on it instead of the
+ * real in-memory access-token state (AC41).
+ *
+ * It must always be set/cleared in lockstep with the real refresh cookie
+ * (same call sites, same `maxAge`) so the two never drift out of sync.
+ */
+export function buildSessionHintCookieOptions(
+  config: ConfigService<EnvConfig, true>,
+): CookieOptions {
+  const refreshTtlDays = config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
+
+  return {
+    httpOnly: true,
+    secure: config.get('NODE_ENV', { infer: true }) === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: refreshTtlDays * 24 * 60 * 60 * 1000,
+  };
+}
+
+/** Attributes used to clear the session-hint cookie — must match `Path` used to set it. */
+export function buildClearSessionHintCookieOptions(
+  config: ConfigService<EnvConfig, true>,
+): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: config.get('NODE_ENV', { infer: true }) === 'production',
+    sameSite: 'lax',
+    path: '/',
   };
 }
 

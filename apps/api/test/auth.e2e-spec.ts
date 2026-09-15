@@ -259,6 +259,23 @@ describe('Auth (e2e)', () => {
       expect(refreshCookie).toMatch(/Path=\/auth/i);
       // Secure is only set in production (NODE_ENV=test here).
       expect(refreshCookie).not.toMatch(/Secure/i);
+
+      // Session-hint cookie: set alongside the refresh cookie, but scoped
+      // to Path=/ (unlike the refresh cookie's Path=/auth) so apps/web
+      // middleware can see it on /app/* requests. Its value is a fixed,
+      // meaningless literal, never the real (sensitive) refresh token.
+      const hintCookie = (setCookieHeader as unknown as string[]).find((c) =>
+        c.startsWith('cf_has_session='),
+      );
+      expect(hintCookie).toBeDefined();
+      expect(hintCookie).toMatch(/^cf_has_session=1;/i);
+      expect(hintCookie).toMatch(/HttpOnly/i);
+      expect(hintCookie).toMatch(/SameSite=Lax/i);
+      // Exactly root path (not a prefix match, which would also accept
+      // the refresh cookie's Path=/auth).
+      expect(hintCookie).toMatch(/;\s*Path=\/(;|$)/i);
+      expect(hintCookie).not.toMatch(/Path=\/auth/i);
+      expect(hintCookie).not.toMatch(/Secure/i);
     });
 
     it('AC7: rejects a correct email with the wrong password with a generic 401', async () => {
@@ -349,6 +366,11 @@ describe('Auth (e2e)', () => {
       );
       expect(newRefreshCookie).toBeDefined();
       expect(newRefreshCookie).not.toBe(refreshCookie);
+
+      // Session-hint cookie is re-set alongside the rotated refresh cookie.
+      const hintCookie = setCookie.find((c) => c.startsWith('cf_has_session='));
+      expect(hintCookie).toBeDefined();
+      expect(hintCookie).toMatch(/^cf_has_session=1;/i);
     });
 
     it('AC13: an expired refresh token is rejected with 401 and the cookie is cleared', async () => {
@@ -371,6 +393,11 @@ describe('Auth (e2e)', () => {
       );
       const setCookie = response.headers['set-cookie'] as unknown as string[];
       expect(setCookie.some((c) => c.startsWith('cf_refresh_token=;'))).toBe(
+        true,
+      );
+      // The session-hint cookie is cleared alongside the refresh cookie on
+      // this failure path too — the two must never drift out of sync.
+      expect(setCookie.some((c) => c.startsWith('cf_has_session=;'))).toBe(
         true,
       );
     });
@@ -474,6 +501,11 @@ describe('Auth (e2e)', () => {
         'set-cookie'
       ] as unknown as string[];
       expect(setCookie.some((c) => c.startsWith('cf_refresh_token=;'))).toBe(
+        true,
+      );
+      // Logout clears the session-hint cookie in lockstep with the real
+      // refresh cookie.
+      expect(setCookie.some((c) => c.startsWith('cf_has_session=;'))).toBe(
         true,
       );
 

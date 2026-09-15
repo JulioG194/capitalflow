@@ -15,14 +15,18 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   AUTH_REFRESH_COOKIE_NAME,
+  AUTH_SESSION_HINT_COOKIE_NAME,
   type UserDto,
 } from '@capitalflow/shared-types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { EnvConfig } from '../../config/env.schema';
 import {
   buildClearRefreshCookieOptions,
+  buildClearSessionHintCookieOptions,
   buildRefreshCookieOptions,
+  buildSessionHintCookieOptions,
   readRefreshCookie,
+  SESSION_HINT_COOKIE_VALUE,
 } from './auth.cookies';
 import { AuthService } from './auth.service';
 import {
@@ -75,7 +79,10 @@ export class AuthController {
   /**
    * AC6/AC11: responds with the access token in the JSON body and sets the
    * raw refresh token only as an `HttpOnly` cookie — it is never present in
-   * the response body.
+   * the response body. Also sets the non-sensitive session-hint cookie
+   * (`Path=/`) in lockstep, so `apps/web` middleware can see that a session
+   * exists on `/app/*` requests, which the `Path=/auth`-scoped refresh
+   * cookie never reaches (see `auth.cookies.ts`).
    *
    * AC30/AC31: rate-limited via the module-level `ThrottlerModule` config
    * (5 requests/60s/IP by default, from `LOGIN_RATE_LIMIT_MAX`/
@@ -97,6 +104,11 @@ export class AuthController {
       result.refreshToken,
       buildRefreshCookieOptions(this.config),
     );
+    res.cookie(
+      AUTH_SESSION_HINT_COOKIE_NAME,
+      SESSION_HINT_COOKIE_VALUE,
+      buildSessionHintCookieOptions(this.config),
+    );
 
     return { accessToken: result.accessToken, user: result.user };
   }
@@ -105,8 +117,10 @@ export class AuthController {
    * AC12-17: rotates the presented refresh token. `RefreshTokenGuard`
    * rejects a missing cookie before this method (or any DB call) runs
    * (AC17). On any failure from `AuthService.refresh` (expired, reused,
-   * unknown) the cookie is cleared and the exception is rethrown as-is so
-   * the client still sees the expected 401.
+   * unknown) both the refresh cookie and the session-hint cookie are
+   * cleared together and the exception is rethrown as-is so the client
+   * still sees the expected 401. The session-hint cookie is set/cleared in
+   * lockstep with the refresh cookie on every branch below.
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -123,12 +137,21 @@ export class AuthController {
         result.refreshToken,
         buildRefreshCookieOptions(this.config),
       );
+      res.cookie(
+        AUTH_SESSION_HINT_COOKIE_NAME,
+        SESSION_HINT_COOKIE_VALUE,
+        buildSessionHintCookieOptions(this.config),
+      );
 
       return { accessToken: result.accessToken };
     } catch (error) {
       res.clearCookie(
         AUTH_REFRESH_COOKIE_NAME,
         buildClearRefreshCookieOptions(this.config),
+      );
+      res.clearCookie(
+        AUTH_SESSION_HINT_COOKIE_NAME,
+        buildClearSessionHintCookieOptions(this.config),
       );
       throw error;
     }
@@ -138,7 +161,8 @@ export class AuthController {
    * AC18/AC19: intentionally unguarded — a missing or already-revoked
    * cookie still responds `200` (idempotent logout), never a `401`, so a
    * caller can't use this endpoint's status code to probe whether a
-   * session existed.
+   * session existed. The session-hint cookie is cleared alongside the real
+   * refresh cookie so the two never drift out of sync.
    */
   @Post('logout')
   @HttpCode(HttpStatus.OK)
@@ -151,6 +175,10 @@ export class AuthController {
     res.clearCookie(
       AUTH_REFRESH_COOKIE_NAME,
       buildClearRefreshCookieOptions(this.config),
+    );
+    res.clearCookie(
+      AUTH_SESSION_HINT_COOKIE_NAME,
+      buildClearSessionHintCookieOptions(this.config),
     );
 
     return {};

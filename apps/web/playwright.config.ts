@@ -13,7 +13,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://127.0.0.1:4310",
     trace: "on-first-retry",
   },
   projects: [
@@ -27,8 +27,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm build && pnpm start",
-    url: "http://127.0.0.1:3000",
+    // Port 3000 is occupied by an unrelated local Docker container on some
+    // dev machines; 4310 avoids the collision. Next.js reads PORT from env.
+    command: "pnpm build && PORT=4310 pnpm start",
+    url: "http://127.0.0.1:4310",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

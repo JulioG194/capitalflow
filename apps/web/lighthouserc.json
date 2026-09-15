@@ -1,8 +1,8 @@
 {
   "ci": {
     "collect": {
-      "url": ["http://127.0.0.1:3000/"],
-      "startServerCommand": "pnpm start",
+      "url": ["http://127.0.0.1:4310/"],
+      "startServerCommand": "PORT=4310 pnpm start",
       "startServerReadyPattern": "Ready in",
       "numberOfRuns": 3,
       "settings": {

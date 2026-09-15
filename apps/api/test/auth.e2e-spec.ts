@@ -7,6 +7,7 @@ import { AppModule } from './../src/app.module';
 import { PrismaExceptionFilter } from './../src/common/filters/prisma-exception.filter';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { hashToken } from './../src/modules/auth/auth.crypto';
+import { EmailService } from './../src/modules/auth/email/email.service';
 
 interface UserResponseBody {
   id: string;
@@ -25,11 +26,17 @@ describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const registeredEmails: string[] = [];
+  const sendPasswordResetEmail = jest
+    .fn<Promise<void>, [{ to: string; resetLink: string }]>()
+    .mockResolvedValue(undefined);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmailService)
+      .useValue({ sendPasswordResetEmail })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
@@ -44,6 +51,10 @@ describe('Auth (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+  });
+
+  beforeEach(() => {
+    sendPasswordResetEmail.mockClear();
   });
 
   afterAll(async () => {
@@ -497,6 +508,170 @@ describe('Auth (e2e)', () => {
         .expect(200);
 
       expect(secondResponse.body).toEqual({});
+    });
+  });
+
+  describe('POST /auth/forgot-password + POST /auth/reset-password', () => {
+    const password = 'correcthorse1';
+    const GENERIC_MESSAGE =
+      'If that email exists, a password reset link has been sent.';
+
+    async function registerAndLogin(email: string): Promise<string> {
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Reset Fixture' })
+        .expect(201);
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(200);
+      return (loginResponse.headers['set-cookie'] as unknown as string[])
+        .find((c) => c.startsWith('cf_refresh_token='))!
+        .split(';')[0];
+    }
+
+    async function requestResetToken(email: string): Promise<string> {
+      await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email })
+        .expect(200);
+      const call = sendPasswordResetEmail.mock.calls.find(
+        ([params]) => params.to === email,
+      );
+      expect(call).toBeDefined();
+      const resetLink = call![0].resetLink;
+      return new URL(resetLink).searchParams.get('token')!;
+    }
+
+    it('AC20: generates and emails a reset token for an existing email, with a generic response', async () => {
+      const email = `reset-ac20-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Reset Fixture' })
+        .expect(201);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email })
+        .expect(200);
+
+      expect((response.body as { message: string }).message).toBe(
+        GENERIC_MESSAGE,
+      );
+      expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+      const [params] = sendPasswordResetEmail.mock.calls[0];
+      expect(params.to).toBe(email);
+      expect(params.resetLink).toContain('/reset-password?token=');
+    });
+
+    it('AC21: returns the identical generic message and never emails for a non-existent address', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: `nobody-${Date.now()}@example.com` })
+        .expect(200);
+
+      expect((response.body as { message: string }).message).toBe(
+        GENERIC_MESSAGE,
+      );
+      expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('AC22: a valid token resets the password and revokes every existing session for that user', async () => {
+      const email = `reset-ac22-${Date.now()}@example.com`;
+      const oldRefreshCookie = await registerAndLogin(email);
+      const token = await requestResetToken(email);
+      const newPassword = 'brandnewpassword1';
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword })
+        .expect(200);
+
+      // The pre-reset session is fully revoked (AC22).
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', oldRefreshCookie)
+        .expect(401);
+
+      // Old password no longer works; new one does.
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: newPassword })
+        .expect(200);
+    });
+
+    it('AC23: rejects an already-used token with a generic 400', async () => {
+      const email = `reset-ac23-used-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Reset Fixture' })
+        .expect(201);
+      const token = await requestResetToken(email);
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'brandnewpassword1' })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'anothernewpassword1' })
+        .expect(400);
+
+      expect((response.body as ErrorResponseBody).code).toBe(
+        'INVALID_RESET_TOKEN',
+      );
+    });
+
+    it('AC23/AC25: rejects an expired token with the identical generic 400', async () => {
+      const email = `reset-ac25-expired-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Reset Fixture' })
+        .expect(201);
+      const token = await requestResetToken(email);
+      await prisma.passwordResetToken.updateMany({
+        where: { tokenHash: hashToken(token) },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'brandnewpassword1' })
+        .expect(400);
+
+      expect((response.body as ErrorResponseBody).code).toBe(
+        'INVALID_RESET_TOKEN',
+      );
+    });
+
+    it('AC24: a complexity failure on newPassword is a 400 and does not consume the token', async () => {
+      const email = `reset-ac24-${Date.now()}@example.com`;
+      registeredEmails.push(email);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email, password, name: 'Reset Fixture' })
+        .expect(201);
+      const token = await requestResetToken(email);
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'short1' })
+        .expect(400);
+
+      // The token is still usable after the complexity failure.
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'brandnewpassword1' })
+        .expect(200);
     });
   });
 });

@@ -28,6 +28,14 @@ import {
 } from './guards/refresh-token.guard';
 import { registerBodySchema, type RegisterDto } from './dto/register.dto';
 import { loginBodySchema, type LoginDto } from './dto/login.dto';
+import {
+  forgotPasswordBodySchema,
+  type ForgotPasswordDto,
+} from './dto/forgot-password.dto';
+import {
+  resetPasswordBodySchema,
+  type ResetPasswordDto,
+} from './dto/reset-password.dto';
 
 interface LoginResponseBody {
   accessToken: string;
@@ -128,5 +136,29 @@ export class AuthController {
     );
 
     return {};
+  }
+
+  /** AC20/AC21: always the same generic response shape either way. */
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordBodySchema))
+    body: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  /**
+   * AC22-25: `resetPasswordBodySchema` validates `newPassword`'s
+   * complexity before this handler ever runs, so a complexity failure
+   * never reaches (or consumes) the token in `AuthService.resetPassword`.
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordBodySchema))
+    body: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

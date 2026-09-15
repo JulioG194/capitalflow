@@ -9,8 +9,10 @@ import type { EnvConfig } from '../../config/env.schema';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
 import { InvalidCredentialsException } from '../../common/exceptions/invalid-credentials.exception';
 import { InvalidRefreshTokenException } from '../../common/exceptions/invalid-refresh-token.exception';
+import { InvalidResetTokenException } from '../../common/exceptions/invalid-reset-token.exception';
 import { generateRawToken, hashToken } from './auth.crypto';
 import type { AccessTokenPayload } from './auth-token.types';
+import { EmailService } from './email/email.service';
 import type { RegisterDto } from './dto/register.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { User } from './entities';
@@ -31,12 +33,20 @@ interface IssuedRefreshToken {
   id: string;
 }
 
+/**
+ * AC20/AC21: identical message regardless of whether the email exists — a
+ * single constant so the two branches can't accidentally drift.
+ */
+export const GENERIC_PASSWORD_RESET_MESSAGE =
+  'If that email exists, a password reset link has been sent.';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService<EnvConfig, true>,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -179,6 +189,106 @@ export class AuthService {
       where: { tokenHash: hashToken(rawToken), revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /**
+   * AC20/AC21: generates and persists (hashed) a single-use reset token
+   * and emails it, but only if the email matches a real user. Always
+   * returns the identical generic message either way, and `EmailService`
+   * is never invoked for a non-existent email (AC21) — there's no
+   * timing-safety requirement here (unlike AC9 for login), so no dummy
+   * work is performed on the not-found branch.
+   */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const normalizedEmail = email.toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (user) {
+      const rawToken = generateRawToken();
+      const ttlMinutes = this.config.get('PASSWORD_RESET_TTL_MINUTES', {
+        infer: true,
+      });
+      const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+      await this.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(rawToken),
+          expiresAt,
+        },
+      });
+
+      const webAppOrigin = this.config.get('WEB_APP_ORIGIN', {
+        infer: true,
+      });
+      await this.emailService.sendPasswordResetEmail({
+        to: user.email,
+        resetLink: `${webAppOrigin}/reset-password?token=${rawToken}`,
+      });
+    }
+
+    return { message: GENERIC_PASSWORD_RESET_MESSAGE };
+  }
+
+  /**
+   * AC22-25: consumes a reset token to set a new password. An unknown,
+   * expired, or already-used token all fail identically (AC23) — checked
+   * up front so a doomed request never reaches the transaction below.
+   * `newPassword`'s complexity is enforced by the Zod DTO pipe *before*
+   * this method is even invoked, so a complexity failure never touches (or
+   * consumes) the token (AC24).
+   *
+   * The actual consumption is an atomic "mark used and check previous
+   * state" conditional update, the same CAS pattern used for refresh-token
+   * rotation (spec section 7) — guarding against two concurrent requests
+   * both trying to consume the same token. It's wrapped together with the
+   * password update and the full refresh-token revocation (AC22) in a
+   * single DB transaction so all three effects land atomically or not at
+   * all.
+   */
+  async resetPassword(
+    rawToken: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const tokenHash = hashToken(rawToken);
+    const existing = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (
+      !existing ||
+      existing.usedAt ||
+      existing.expiresAt.getTime() < Date.now()
+    ) {
+      throw new InvalidResetTokenException();
+    }
+
+    const passwordHash = await argon2.hash(newPassword, ARGON2_OPTIONS);
+
+    await this.prisma.$transaction(async (tx) => {
+      const consumption = await tx.passwordResetToken.updateMany({
+        where: { id: existing.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      if (consumption.count === 0) {
+        throw new InvalidResetTokenException();
+      }
+
+      await tx.user.update({
+        where: { id: existing.userId },
+        data: { passwordHash },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: existing.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
+
+    return { message: 'Your password has been reset. Please log in again.' };
   }
 
   /** AC14/AC16: revokes every currently-active refresh token for a user. */

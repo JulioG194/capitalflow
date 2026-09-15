@@ -5,6 +5,7 @@ import { jwtModuleFactory } from '../../config/jwt.config';
 import type { EnvConfig } from '../../config/env.schema';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { ConsoleEmailAdapter, EmailService } from './email/email.service';
 
 @Module({
   imports: [
@@ -16,6 +17,11 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    // AC34/AC35: the only place that wires a concrete EmailService — a
+    // future real provider adapter (spec 006) only changes this line.
+    { provide: EmailService, useClass: ConsoleEmailAdapter },
+  ],
 })
 export class AuthModule {}

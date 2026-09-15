@@ -42,6 +42,15 @@ export const envSchema = z.object({
     .positive()
     .default(60),
 
+  // Rate limit applied to POST /portfolio/invest (spec 005 AC14/AC15),
+  // keyed by user id rather than IP (design decision 3).
+  INVEST_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
+  INVEST_RATE_LIMIT_WINDOW_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3600),
+
   // Origin of `apps/web`. Used both for `app.enableCors()` (credentialed
   // cross-origin cookie requests require an explicit, non-wildcard origin)
   // and for building the link embedded in password-reset emails.

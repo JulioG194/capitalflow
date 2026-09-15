@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  INVESTABLE_SYMBOLS,
   SYMBOL_ASSET_CLASS,
   type AllocationSliceDto,
   type AssetClass,
@@ -15,6 +16,7 @@ import { PortfolioNotFoundException } from '../../common/exceptions/portfolio-no
 import { AmountBelowMinimumException } from '../../common/exceptions/amount-below-minimum.exception';
 import { InsufficientFundsException } from '../../common/exceptions/insufficient-funds.exception';
 import { PriceUnavailableException } from '../../common/exceptions/price-unavailable.exception';
+import { UnsupportedInvestSymbolException } from '../../common/exceptions/unsupported-invest-symbol.exception';
 
 interface CachedQuote {
   price?: string;
@@ -186,9 +188,18 @@ export class PortfolioService {
     // AC12: no Portfolio row is a data-integrity 404, checked first.
     const portfolio = await this.findPortfolioOrThrow(userId);
 
-    // AC2/AC3: symbol enum membership and amount format are already
-    // guaranteed by `investSchema`'s `ZodValidationPipe` before this method
-    // runs — only the business-rule minimum is this method's job (AC4).
+    // AC2: `investSchema`'s `symbol` field is a format-only check (any
+    // non-empty string) — membership in `INVESTABLE_SYMBOLS` is this
+    // method's own business-rule check, so a well-formed-but-unsupported
+    // symbol gets its own distinct `400 UNSUPPORTED_SYMBOL` here instead of
+    // collapsing into AC3's generic zod validation-error shape.
+    if (!INVESTABLE_SYMBOLS.includes(symbol)) {
+      throw new UnsupportedInvestSymbolException();
+    }
+
+    // AC3: amount format is already guaranteed by `investSchema`'s
+    // `ZodValidationPipe` before this method runs — only the business-rule
+    // minimum is this method's job (AC4).
     const amountDecimal = new Prisma.Decimal(amount);
     if (amountDecimal.lessThan(MIN_INVEST_AMOUNT)) {
       throw new AmountBelowMinimumException();

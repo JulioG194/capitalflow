@@ -6,6 +6,7 @@ import { PortfolioNotFoundException } from '../../common/exceptions/portfolio-no
 import { AmountBelowMinimumException } from '../../common/exceptions/amount-below-minimum.exception';
 import { InsufficientFundsException } from '../../common/exceptions/insufficient-funds.exception';
 import { PriceUnavailableException } from '../../common/exceptions/price-unavailable.exception';
+import { UnsupportedInvestSymbolException } from '../../common/exceptions/unsupported-invest-symbol.exception';
 import { PortfolioService } from './portfolio.service';
 
 interface PortfolioRecord {
@@ -671,6 +672,17 @@ describe('PortfolioService', () => {
         expect(prisma.$transaction).not.toHaveBeenCalled();
       },
     );
+
+    it('AC2: rejects a well-formed but unsupported symbol with UnsupportedInvestSymbolException before any price lookup or DB write', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());
+
+      await expect(
+        service.invest('user-1', 'NOT_A_REAL_SYMBOL', '100.00'),
+      ).rejects.toBeInstanceOf(UnsupportedInvestSymbolException);
+
+      expect(redis.get).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
 
     it('AC4: rejects an amount below the "1.00" minimum with AmountBelowMinimumException before any price lookup or DB write', async () => {
       prisma.portfolio.findUnique.mockResolvedValue(portfolioRecord());

@@ -28,8 +28,19 @@ export const investAmountSchema = z
     'Amount must be a positive decimal with up to 2 decimal places',
   );
 
+/**
+ * Format check only for `symbol`: a non-empty string. Membership in
+ * `INVESTABLE_SYMBOLS` (AC2) is deliberately NOT enforced here via
+ * `z.enum(...)` — doing so would make an unsupported symbol fail this
+ * schema the same generic way a malformed `amount` does (AC3), collapsing
+ * AC2's own distinct `400 UNSUPPORTED_SYMBOL` domain error into an
+ * indistinguishable zod validation-error shape before
+ * `PortfolioService.invest` ever runs. `INVESTABLE_SYMBOLS` remains
+ * exported for the frontend selector (AC23) and is enforced server-side by
+ * the service itself (`UnsupportedInvestSymbolException`).
+ */
 export const investSchema = z.object({
-  symbol: z.enum(INVESTABLE_SYMBOLS as [string, ...string[]]),
+  symbol: z.string().min(1),
   amount: investAmountSchema,
 });
 export type InvestInput = z.infer<typeof investSchema>;

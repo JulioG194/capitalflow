@@ -207,19 +207,29 @@ describe('POST /portfolio/invest (e2e)', () => {
     expect(holdings[0]?.averagePrice.toFixed(2)).toBe('66.67');
   });
 
-  it("AC2: rejects a symbol outside the investable set with 400 (collapsed with AC3 by investSchema's z.enum)", async () => {
+  it("AC2: rejects a well-formed but unsupported symbol with 400 UNSUPPORTED_SYMBOL, distinct from AC3's generic validation-error shape", async () => {
     const email = `invest-ac2-${Date.now()}@example.com`;
     registeredEmails.push(email);
     const accessToken = await registerAndLogin(email);
 
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/portfolio/invest')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ symbol: 'NOT_A_REAL_SYMBOL', amount: '100.00' })
       .expect(400);
+
+    expect((response.body as ErrorResponseBody).code).toBe(
+      'UNSUPPORTED_SYMBOL',
+    );
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const portfolio = await prisma.portfolio.findUniqueOrThrow({
+      where: { userId: user.id },
+    });
+    expect(portfolio.cashBalance.toFixed(2)).toBe('10000.00');
   });
 
-  it('AC3: rejects a zero amount with 400 field-level validation before any business logic runs', async () => {
+  it("AC3: rejects a zero amount with 400 field-level validation before any business logic runs, distinct from AC2's domain error shape", async () => {
     const email = `invest-ac3-${Date.now()}@example.com`;
     registeredEmails.push(email);
     const accessToken = await registerAndLogin(email);

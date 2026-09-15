@@ -39,11 +39,22 @@ describe('investSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects a symbol outside the investable set (AC2)', () => {
+  it('accepts a symbol outside the investable set at the schema layer — membership (AC2) is a service-level check, not enforced by this schema', () => {
+    // `investSchema`'s `symbol` field is deliberately format-only: a
+    // `z.enum(INVESTABLE_SYMBOLS)` here would swallow AC2's unsupported-
+    // symbol case into AC3's generic validation-error shape before
+    // `PortfolioService.invest` ever runs. `PortfolioService.invest` checks
+    // `INVESTABLE_SYMBOLS` membership itself and throws a distinct
+    // `UnsupportedInvestSymbolException` (400 UNSUPPORTED_SYMBOL).
     const result = investSchema.safeParse({
       symbol: 'NOT_A_REAL_SYMBOL',
       amount: '100.00',
     });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an empty symbol (still a format check at this layer)', () => {
+    const result = investSchema.safeParse({ symbol: '', amount: '100.00' });
     expect(result.success).toBe(false);
   });
 

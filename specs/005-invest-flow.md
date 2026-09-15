@@ -149,9 +149,10 @@ import { z } from "zod";
 import { MARKET_SYMBOL_GROUPS } from "./market";
 
 // The full set of symbols this spec allows investing in — the same
-// symbols apps/market-stream actually caches prices for (spec 003),
-// so AC2's server-side check and AC23's UI selector share one source
-// of truth rather than two independently maintained lists.
+// symbols apps/market-stream actually caches prices for (spec 003), so
+// PortfolioService.invest's server-side membership check (AC2) and
+// AC23's UI selector share one source of truth rather than two
+// independently maintained lists.
 export const INVESTABLE_SYMBOLS: readonly string[] = [
   ...new Set([
     ...MARKET_SYMBOL_GROUPS.ticker,
@@ -173,8 +174,20 @@ export const investAmountSchema = z
     "Amount must be a positive decimal with up to 2 decimal places",
   );
 
+/**
+ * `symbol` is deliberately a format-only check here (any non-empty
+ * string), NOT `z.enum(INVESTABLE_SYMBOLS)`. An enum would make an
+ * unsupported symbol fail this same shared schema the same generic way a
+ * malformed `amount` does (AC3), collapsing AC2's own distinct
+ * `400 UNSUPPORTED_SYMBOL` domain error into an indistinguishable zod
+ * validation-error shape before `PortfolioService.invest` ever runs.
+ * Membership in `INVESTABLE_SYMBOLS` (AC2) is enforced as this method's
+ * own first business-rule check instead, mirroring how the minimum-amount
+ * check (AC4) is also a service-level check on top of this schema's pure
+ * format validation.
+ */
 export const investSchema = z.object({
-  symbol: z.enum(INVESTABLE_SYMBOLS as [string, ...string[]]),
+  symbol: z.string().min(1),
   amount: investAmountSchema,
 });
 export type InvestInput = z.infer<typeof investSchema>;
@@ -222,7 +235,10 @@ already pinned there: `Holding` unique on (`portfolioId`, `symbol`);
 
 - `portfolio.controller.ts` — add `POST /invest`, guarded by
   `AccessTokenGuard` and a per-user throttle guard.
-- `portfolio.service.ts` — add `invest(userId, symbol, amount)`: looks up
+- `portfolio.service.ts` — add `invest(userId, symbol, amount)`: checks
+  `symbol` against `INVESTABLE_SYMBOLS` itself (AC2 — `investSchema`'s
+  `symbol` field is a format-only check, not an enum, precisely so this
+  membership check is reachable as its own distinct error), looks up
   the fresh price via the existing `RedisService` (same `market:quote:<symbol>`
   key spec 004 already reads), performs the atomic conditional balance
   deduction, and creates the `Transaction` + upserts the `Holding` inside a

@@ -36,6 +36,11 @@ export const envSchema = z.object({
     .int()
     .positive()
     .default(60),
+
+  // Origin of `apps/web`. Used both for `app.enableCors()` (credentialed
+  // cross-origin cookie requests require an explicit, non-wildcard origin)
+  // and for building the link embedded in password-reset emails.
+  WEB_APP_ORIGIN: z.string().min(1).default('http://localhost:3000'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

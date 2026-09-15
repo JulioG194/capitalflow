@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -83,7 +84,7 @@
       ]
     },
     "transformIgnorePatterns": [
-      "node_modules/\\.pnpm/(?!(@nestjs\\+config|dotenv|dotenv-expand|es-toolkit|@standard-schema)@)"
+      "node_modules/\\.pnpm/(?!(@nestjs\\+config|@nestjs\\+jwt|dotenv|dotenv-expand|es-toolkit|@standard-schema)@)"
     ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"

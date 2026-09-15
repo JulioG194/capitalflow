@@ -12,7 +12,7 @@
     ]
   },
   "transformIgnorePatterns": [
-    "node_modules/\\.pnpm/(?!(@nestjs\\+config|dotenv|dotenv-expand|es-toolkit|@standard-schema)@)"
+    "node_modules/\\.pnpm/(?!(@nestjs\\+config|@nestjs\\+jwt|dotenv|dotenv-expand|es-toolkit|@standard-schema)@)"
   ],
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"

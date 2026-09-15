@@ -18,6 +18,11 @@ export const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
+  // Redis instance apps/market-stream caches prices in (spec 003 AC8).
+  // apps/api only ever reads from it (spec 004 section 4) — it never talks
+  // to Finnhub directly, per CLAUDE.md's external-dependency constraint.
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+
   // RS256 key pair used to sign (private) and verify (public) access tokens.
   JWT_ACCESS_PRIVATE_KEY: pemKeySchema,
   JWT_ACCESS_PUBLIC_KEY: pemKeySchema,

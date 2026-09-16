@@ -110,6 +110,22 @@ cross-site cookies, and TLS. No custom domain — free subdomains only.
 ```
 
 ### `render.yaml` (Blueprint at repo root)
+
+> **Naming note (post-implementation correction, 2026-09-15)**: the actual
+> `render.yaml` at the repo root uses the env var names apps/api and
+> apps/market-stream really read (`JWT_ACCESS_PRIVATE_KEY`,
+> `JWT_ACCESS_PUBLIC_KEY`, `WEB_APP_ORIGIN`) rather than the illustrative
+> `JWT_PRIVATE_KEY_BASE64` / `JWT_PUBLIC_KEY_BASE64` / `WEB_ORIGIN` shown
+> below — a deliberate choice to avoid an env-var rename across both
+> services' code (see `infra/DEPLOY.md`'s "Naming note"). This block below
+> is also corrected from the original draft: apps/api's own
+> `src/config/env.schema.ts` requires `REDIS_URL` (apps/api reads cached
+> prices from it) and `PASSWORD_RESET_TTL_MINUTES` (no default) — both were
+> missing from the original example, which would have failed apps/api's
+> AC18 fail-fast validation at boot. `STREAM_INTERNAL_URL` was dropped:
+> apps/api never calls apps/market-stream directly (per this file's
+> External dependencies section), so nothing reads it.
+
 ```yaml
 services:
   - type: web
@@ -126,17 +142,21 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
-      - key: JWT_PRIVATE_KEY_BASE64
-        sync: false
-      - key: JWT_PUBLIC_KEY_BASE64
-        sync: false
-      - key: WEB_ORIGIN
-        value: https://capitalflow.vercel.app
-      - key: STREAM_INTERNAL_URL
+      - key: REDIS_URL
         fromService:
-          type: web
-          name: capitalflow-stream
-          property: hostport
+          type: redis
+          name: capitalflow-redis
+          property: connectionString
+      - key: JWT_ACCESS_PRIVATE_KEY
+        sync: false
+      - key: JWT_ACCESS_PUBLIC_KEY
+        sync: false
+      - key: PASSWORD_RESET_TTL_MINUTES
+        value: "30"
+      - key: WEB_APP_ORIGIN
+        value: https://capitalflow.vercel.app
+      - key: WEB_PREVIEW_ORIGIN_REGEX
+        value: ^https://capitalflow-[a-z0-9-]+\.vercel\.app$
 
   - type: web
     name: capitalflow-stream
@@ -154,12 +174,14 @@ services:
           type: redis
           name: capitalflow-redis
           property: connectionString
-      - key: JWT_PUBLIC_KEY_BASE64
+      - key: JWT_ACCESS_PUBLIC_KEY
         sync: false
       - key: FINNHUB_API_KEY
         sync: false
-      - key: WEB_ORIGIN
+      - key: WEB_APP_ORIGIN
         value: https://capitalflow.vercel.app
+      - key: WEB_PREVIEW_ORIGIN_REGEX
+        value: ^https://capitalflow-[a-z0-9-]+\.vercel\.app$
 
   - type: redis
     name: capitalflow-redis

@@ -1,0 +1,72 @@
+# Render Blueprint for CapitalFlow (spec 006).
+#
+# Declares apps/api and apps/market-stream as free-tier web services plus a
+# free-tier Redis instance. Connect this repo in the Render dashboard, choose
+# "Blueprint", and Render reads this file. `sync: false` vars must be pasted
+# manually in the Render dashboard on first deploy — see infra/DEPLOY.md.
+#
+# Env var names below match what apps/api and apps/market-stream actually
+# read (src/config/env.schema.ts in each), not spec 006 section 4's literal
+# JWT_*_BASE64 / WEB_ORIGIN naming — see infra/DEPLOY.md's "Naming note".
+
+services:
+  - type: web
+    name: capitalflow-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api build
+    startCommand: pnpm --filter api start:prod
+    preDeployCommand: pnpm --filter api prisma migrate deploy
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: capitalflow-redis
+          property: connectionString
+      - key: JWT_ACCESS_PRIVATE_KEY
+        sync: false
+      - key: JWT_ACCESS_PUBLIC_KEY
+        sync: false
+      - key: PASSWORD_RESET_TTL_MINUTES
+        value: "30"
+      - key: WEB_APP_ORIGIN
+        value: https://capitalflow.vercel.app
+      - key: WEB_PREVIEW_ORIGIN_REGEX
+        value: ^https://capitalflow-[a-z0-9-]+\.vercel\.app$
+
+  - type: web
+    name: capitalflow-stream
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter market-stream build
+    startCommand: pnpm --filter market-stream start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: capitalflow-redis
+          property: connectionString
+      - key: JWT_ACCESS_PUBLIC_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: WEB_APP_ORIGIN
+        value: https://capitalflow.vercel.app
+      - key: WEB_PREVIEW_ORIGIN_REGEX
+        value: ^https://capitalflow-[a-z0-9-]+\.vercel\.app$
+
+  - type: redis
+    name: capitalflow-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru

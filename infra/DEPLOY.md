@@ -10,11 +10,11 @@ this setup, `git push` to `main` auto-deploys all three services (AC13/AC14).
 - Local RSA key pair for JWT signing (see step 3) — generate it once, reuse
   across environments.
 - These steps assume the cloud-deployment code changes for spec 006 have
-  landed: CORS allowlist (`WEB_APP_ORIGIN` + `WEB_PREVIEW_ORIGIN_REGEX`),
-  cross-site cookie config, `GET /health` on both `apps/api` and
-  `apps/market-stream`. Until then, the Render health checks below will
-  fail and CORS will only accept a single origin. Check the relevant spec
-  AC blocks are implemented and merged before running a first deploy.
+  landed: CORS allowlist (`WEB_APP_ORIGIN` + `WEB_PREVIEW_ORIGIN_REGEX`,
+  AC7/AC10), cross-site cookie config (AC9), `GET /health` on both
+  `apps/api` and `apps/market-stream`. Until then, the Render health checks
+  below will fail. Check the relevant spec AC blocks are implemented and
+  merged before running a first deploy.
 
 ## Naming note
 
@@ -22,8 +22,10 @@ this setup, `git push` to `main` auto-deploys all three services (AC13/AC14).
 `apps/api`/`apps/market-stream` today (`JWT_ACCESS_PRIVATE_KEY`,
 `JWT_ACCESS_PUBLIC_KEY`, `WEB_APP_ORIGIN`) rather than spec 006 section 4's
 illustrative `JWT_PRIVATE_KEY_BASE64` / `WEB_ORIGIN` names. `WEB_PREVIEW_ORIGIN_REGEX`
-is genuinely new and not yet read by either service's env schema — it's
-included so it's already set once the CORS allowlist code lands.
+is read by both services' env schemas (AC7/AC10) and is OPTIONAL with NO
+default — leave it unset in an environment to allow zero preview origins
+(fail closed), or set it to enable Vercel preview-deploy CORS/Socket.io
+access.
 
 ---
 

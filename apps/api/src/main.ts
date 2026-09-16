@@ -2,9 +2,20 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import { isOriginAllowed } from '@capitalflow/shared-types';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import type { EnvConfig } from './config/env.schema';
+
+/**
+ * Matches `@nestjs/common`'s internal (not publicly re-exported)
+ * `CustomOrigin` type for `CorsOptions.origin` — declared locally rather
+ * than importing an unexported type from the package's internals.
+ */
+type CorsOriginFn = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void,
+) => void;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,15 +24,32 @@ async function bootstrap() {
   // Credentialed cross-origin requests (the refresh cookie, sent via
   // `fetch(..., { credentials: "include" })` from apps/web) require an
   // explicit origin — `credentials: true` is incompatible with the
-  // wildcard `*` origin CORS otherwise defaults to.
+  // wildcard `*` origin CORS otherwise defaults to. The origin callback
+  // defers to the shared `isOriginAllowed` allowlist (spec 006 AC7) so
+  // apps/api and apps/market-stream's Socket.io `IoAdapter` (AC10) apply
+  // the exact same three rules instead of two hand-copies that could drift.
   //
   // `exposedHeaders` is required because a browser hides all
   // non-"simple" response headers from cross-origin `fetch()` callers by
   // default — without this, `Retry-After` on a 429 (spec 002's login
   // throttle and spec 005 AC30's invest throttle) is set by the server
   // but invisible to apps/web's `response.headers.get("Retry-After")`.
+  const corsOrigin: CorsOriginFn = (origin, callback) => {
+    const allowed = isOriginAllowed(origin, {
+      webAppOrigin: configService.get('WEB_APP_ORIGIN', { infer: true }),
+      webPreviewOriginRegex: configService.get('WEB_PREVIEW_ORIGIN_REGEX', {
+        infer: true,
+      }),
+    });
+    if (allowed) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('CORS: origin not allowed'));
+  };
+
   app.enableCors({
-    origin: configService.get('WEB_APP_ORIGIN', { infer: true }),
+    origin: corsOrigin,
     credentials: true,
     exposedHeaders: ['Retry-After'],
   });

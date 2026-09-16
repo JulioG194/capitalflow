@@ -25,15 +25,9 @@ export const envSchema = z.object({
   JWT_ACCESS_PUBLIC_KEY: pemKeySchema,
 
   FINNHUB_API_KEY: z.string().min(1, 'FINNHUB_API_KEY is required'),
-  FINNHUB_WS_URL: z
-    .string()
-    .url()
-    .default('wss://ws.finnhub.io'),
+  FINNHUB_WS_URL: z.string().url().default('wss://ws.finnhub.io'),
   // REST base for AC10 cache-miss bootstrap (quote endpoint lives under /quote).
-  FINNHUB_REST_URL: z
-    .string()
-    .url()
-    .default('https://finnhub.io/api/v1'),
+  FINNHUB_REST_URL: z.string().url().default('https://finnhub.io/api/v1'),
 
   // Spec 003 section 7: reconnect backoff is config, not magic numbers.
   FINNHUB_RECONNECT_BASE_MS: z.coerce.number().int().positive().default(1000),
@@ -47,6 +41,30 @@ export const envSchema = z.object({
   REDIS_QUOTE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
 
   WEB_APP_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+
+  // Optional regex matching Vercel preview-deploy origins (spec 006 AC10),
+  // same value as apps/api's `WEB_PREVIEW_ORIGIN_REGEX`. Deliberately has NO
+  // default: if unset, `isOriginAllowed` (see `@capitalflow/shared-types`)
+  // allows zero preview origins — fail closed, not a permissive fallback.
+  WEB_PREVIEW_ORIGIN_REGEX: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (value === undefined) {
+          return true;
+        }
+        try {
+          new RegExp(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'WEB_PREVIEW_ORIGIN_REGEX must be a valid regular expression',
+      },
+    ),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

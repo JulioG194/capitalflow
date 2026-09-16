@@ -55,6 +55,30 @@ export const envSchema = z.object({
   // cross-origin cookie requests require an explicit, non-wildcard origin)
   // and for building the link embedded in password-reset emails.
   WEB_APP_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+
+  // Optional regex matching Vercel preview-deploy origins (spec 006 AC7),
+  // e.g. `^https://capitalflow-[a-z0-9-]+\.vercel\.app$`. Deliberately has
+  // NO default: if unset, `isOriginAllowed` (see `@capitalflow/shared-types`)
+  // allows zero preview origins — fail closed, not a permissive fallback.
+  WEB_PREVIEW_ORIGIN_REGEX: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (value === undefined) {
+          return true;
+        }
+        try {
+          new RegExp(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'WEB_PREVIEW_ORIGIN_REGEX must be a valid regular expression',
+      },
+    ),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

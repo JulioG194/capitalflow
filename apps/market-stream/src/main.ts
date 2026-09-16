@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
+import { MarketIoAdapter } from './market/market-io.adapter';
 
 /**
  * Spec 006 edge case ("JWT key mismatch across services"): logs a short,
@@ -33,6 +34,13 @@ async function bootstrap() {
     origin,
     credentials: true,
   });
+
+  // Spec 006 AC10: Socket.io must accept connections from the same origin
+  // allowlist as apps/api (localhost:3000, WEB_APP_ORIGIN,
+  // WEB_PREVIEW_ORIGIN_REGEX). Must be wired before `app.listen()` so the
+  // adapter is in place before the HTTP server (and therefore Socket.io's
+  // `engine.io` upgrade handling) starts accepting connections.
+  app.useWebSocketAdapter(new MarketIoAdapter(app));
 
   logJwtPublicKeyFingerprint(config.get('JWT_ACCESS_PUBLIC_KEY'));
 

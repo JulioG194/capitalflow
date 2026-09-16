@@ -30,25 +30,48 @@ export const SESSION_HINT_COOKIE_VALUE = '1';
 export const REFRESH_COOKIE_PATH = '/auth';
 
 /**
+ * Resolves the `SameSite` attribute shared by every auth cookie this module
+ * sets/clears (spec 006 AC9).
+ *
+ * `apps/web` (Vercel) and `apps/api` (Render) are deployed to entirely
+ * different registrable domains/sites in production — NOT same-site
+ * subdomains as an earlier draft of this comment assumed — so a `Lax` (or
+ * `Strict`) cookie would never be attached to `apps/web`'s cross-site
+ * `fetch(..., { credentials: "include" })` calls at all. Cross-site
+ * credentialed cookies require `SameSite=None`, which in turn requires
+ * `Secure` (browsers reject `SameSite=None` without `Secure`).
+ *
+ * In development/test, `apps/web` and `apps/api` run on plain HTTP
+ * (`localhost:3000` / `localhost:3001`), where `Secure` cookies are
+ * silently dropped by the browser entirely — so dev/test uses `Lax` over
+ * plain HTTP instead, which is still sent on `apps/web`'s same-site (both
+ * `localhost`) cross-origin fetches.
+ */
+function resolveSameSite(
+  config: ConfigService<EnvConfig, true>,
+): 'none' | 'lax' {
+  return config.get('NODE_ENV', { infer: true }) === 'production'
+    ? 'none'
+    : 'lax';
+}
+
+/**
  * Cookie attributes shared by every `res.cookie(...)` / `res.clearCookie(...)`
- * call that sets/clears the refresh-token cookie (spec 002 AC6, AC33).
- * `Secure` is only enabled in production because local HTTP dev servers
- * can't set a `Secure` cookie at all (the browser silently drops it).
- * `SameSite=Lax` is used rather than `Strict`: `apps/web` and `apps/api`
- * are different origins (different ports in dev, likely subdomains in
- * prod) but the same registrable *site*, and `Lax` cookies are still sent
- * on same-site cross-origin `fetch(..., { credentials: "include" })`
- * calls — which is exactly how `apps/web`'s `authFetch` talks to this API.
+ * call that sets/clears the refresh-token cookie (spec 002 AC6, AC33; spec
+ * 006 AC9). `Secure` is only enabled in production because local HTTP dev
+ * servers can't set a `Secure` cookie at all (the browser silently drops
+ * it), and `Secure` is mandatory whenever `SameSite=None` is used.
  */
 export function buildRefreshCookieOptions(
   config: ConfigService<EnvConfig, true>,
 ): CookieOptions {
   const refreshTtlDays = config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
+  const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
 
   return {
     httpOnly: true,
-    secure: config.get('NODE_ENV', { infer: true }) === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: resolveSameSite(config),
     path: REFRESH_COOKIE_PATH,
     maxAge: refreshTtlDays * 24 * 60 * 60 * 1000,
   };
@@ -58,10 +81,12 @@ export function buildRefreshCookieOptions(
 export function buildClearRefreshCookieOptions(
   config: ConfigService<EnvConfig, true>,
 ): CookieOptions {
+  const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
+
   return {
     httpOnly: true,
-    secure: config.get('NODE_ENV', { infer: true }) === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: resolveSameSite(config),
     path: REFRESH_COOKIE_PATH,
   };
 }
@@ -96,16 +121,21 @@ export function buildClearRefreshCookieOptions(
  *
  * It must always be set/cleared in lockstep with the real refresh cookie
  * (same call sites, same `maxAge`) so the two never drift out of sync.
+ *
+ * `SameSite`/`Secure` follow the exact same production-vs-dev split as the
+ * refresh cookie (spec 006 AC9, `resolveSameSite` above) — only `Path`
+ * differs (`/` here, by design, vs `/auth` for the refresh cookie).
  */
 export function buildSessionHintCookieOptions(
   config: ConfigService<EnvConfig, true>,
 ): CookieOptions {
   const refreshTtlDays = config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
+  const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
 
   return {
     httpOnly: true,
-    secure: config.get('NODE_ENV', { infer: true }) === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: resolveSameSite(config),
     path: '/',
     maxAge: refreshTtlDays * 24 * 60 * 60 * 1000,
   };
@@ -115,10 +145,12 @@ export function buildSessionHintCookieOptions(
 export function buildClearSessionHintCookieOptions(
   config: ConfigService<EnvConfig, true>,
 ): CookieOptions {
+  const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
+
   return {
     httpOnly: true,
-    secure: config.get('NODE_ENV', { infer: true }) === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: resolveSameSite(config),
     path: '/',
   };
 }

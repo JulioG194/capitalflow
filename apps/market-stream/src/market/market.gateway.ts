@@ -52,10 +52,16 @@ type MarketServer = Server<
  * Socket.io `/market` namespace (spec 003 section 4). Auth is handshake-only
  * (AC18–AC20); subscribe/unsubscribe drive the in-memory watch counts and
  * the single Finnhub upstream connection.
+ *
+ * No `cors` option here (spec 006 AC10): this decorator argument is
+ * evaluated at module-import time, before Nest's DI container — and
+ * therefore the Zod-validated `AppConfigService` — exists, so it cannot
+ * read live config. CORS is instead configured by `MarketIoAdapter` (see
+ * `market-io.adapter.ts`), wired via `app.useWebSocketAdapter(...)` in
+ * `main.ts`.
  */
 @WebSocketGateway({
   namespace: '/market',
-  cors: { origin: true, credentials: true },
 })
 export class MarketGateway
   implements

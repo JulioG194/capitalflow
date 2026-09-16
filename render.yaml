@@ -15,9 +15,9 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build
     startCommand: pnpm --filter api start:prod
-    preDeployCommand: pnpm --filter api prisma migrate deploy
+    preDeployCommand: pnpm --filter api exec prisma migrate deploy
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

@@ -20,6 +20,8 @@ services:
     preDeployCommand: pnpm --filter api exec prisma migrate deploy
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
@@ -49,6 +51,8 @@ services:
     startCommand: pnpm --filter market-stream start:prod
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: REDIS_URL

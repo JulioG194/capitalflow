@@ -26,7 +26,7 @@ This repository is BOTH:
 - **Market Stream**: NestJS 11, Socket.io, Redis, Finnhub API (free tier, 15-min delayed)
 - **Shared**: `packages/shared-types` — DTOs, zod schemas, TS types across apps
 - **Infra**: Docker Compose, Nginx reverse proxy, deployable to any VPS
-- **Node**: v20 (see `.nvmrc`)
+- **Node**: v22 (see `.nvmrc`)
 - **Package manager**: pnpm only (never npm/yarn)
 
 ## Project layout

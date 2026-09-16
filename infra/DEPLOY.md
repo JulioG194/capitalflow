@@ -95,6 +95,11 @@ AC19 / spec 003 section 7) — it verifies tokens, never signs them.
    - **Install Command**: `cd ../.. && pnpm install --frozen-lockfile`
    - **Build Command**: `cd ../.. && pnpm --filter web build`
    - **Output Directory**: leave default
+   - **Node.js Version**: set to **22.x** under Settings > General. There is
+     no `vercel.json` or `engines` field in `apps/web/package.json` pinning
+     this — it must match `.nvmrc`/CI (Node 22) by hand in the dashboard, or
+     the build environment will drift from local/CI and can hit the same
+     `undici`/`jsdom` Node-version incompatibility that Node 20 did.
 4. Environment Variables (Production + Preview):
    - `NEXT_PUBLIC_API_URL` — `https://capitalflow-api.onrender.com`
    - `NEXT_PUBLIC_MARKET_STREAM_URL` — `https://capitalflow-stream.onrender.com`

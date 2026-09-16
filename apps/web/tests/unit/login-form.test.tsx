@@ -20,12 +20,12 @@ describe("LoginForm", () => {
 
   it("AC37: blocks submission and shows a field error on an empty password", async () => {
     render(<LoginForm />);
-    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ada@example.com" },
     });
     // Password left empty.
 
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
     await waitFor(() => {
       expect(loginRequest).not.toHaveBeenCalled();
@@ -38,16 +38,16 @@ describe("LoginForm", () => {
     );
 
     render(<LoginForm />);
-    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ada@example.com" },
     });
-    fireEvent.change(screen.getByLabelText("Contraseña"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "wrongpassword1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Correo electrónico o contraseña incorrectos.");
+    expect(alert).toHaveTextContent("Incorrect email or password.");
     expect(alert).not.toHaveTextContent(/password mismatch/i);
   });
 
@@ -58,13 +58,13 @@ describe("LoginForm", () => {
     });
 
     render(<LoginForm redirectTo="/app/portfolio" />);
-    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ada@example.com" },
     });
-    fireEvent.change(screen.getByLabelText("Contraseña"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "correcthorse1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
     await waitFor(() => {
       expect(loginRequest).toHaveBeenCalledWith({

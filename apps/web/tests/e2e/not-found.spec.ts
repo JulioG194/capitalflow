@@ -8,10 +8,10 @@ test.describe("Branded 404 page (spec 001 §5 edge case)", () => {
     expect(response?.status()).toBe(404);
 
     await expect(
-      page.getByRole("heading", { name: "No encontramos esta página" }),
+      page.getByRole("heading", { name: "We couldn't find this page" }),
     ).toBeVisible();
 
-    const homeLink = page.getByRole("link", { name: "Volver al inicio" });
+    const homeLink = page.getByRole("link", { name: "Back to home" });
     await expect(homeLink).toHaveAttribute("href", "/");
 
     await homeLink.click();

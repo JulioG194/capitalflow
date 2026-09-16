@@ -19,7 +19,7 @@ const DEFAULT_SYMBOL = INVESTABLE_SYMBOLS[0] ?? "";
  * AC23-AC24: symbol selector constrained to `INVESTABLE_SYMBOLS` (an
  * unsupported symbol is structurally unselectable — there is no free-text
  * symbol input anywhere in this form), an amount input, the fetched
- * `cashBalance` displayed via `formatMoney`, and an "Invertir" button
+ * `cashBalance` displayed via `formatMoney`, and an "Invest" button
  * disabled with a visible message whenever the entered amount exceeds that
  * balance (a UX guard only — AC5's server-side check remains the sole
  * security boundary). AC25: a valid click opens `<ConfirmInvestModal>`.
@@ -52,7 +52,7 @@ export function InvestForm() {
   const canSubmit =
     isAmountFormatValid && balanceState.status === "ready" && symbol !== "" && !exceedsBalance;
 
-  function handleInvertirClick() {
+  function handleInvestClick() {
     if (!canSubmit) return;
     setModalOpen(true);
   }
@@ -65,11 +65,11 @@ export function InvestForm() {
   return (
     <div className="flex flex-col gap-4 rounded-card border border-gray-100 bg-white p-4 shadow-sm">
       <div>
-        <h3 className="text-sm font-semibold text-ink-muted">Efectivo disponible</h3>
+        <h3 className="text-sm font-semibold text-ink-muted">Available cash</h3>
         {balanceState.status === "loading" ? (
-          <PortfolioSkeleton className="mt-2 h-7 w-32 rounded-card" label="Cargando efectivo disponible" />
+          <PortfolioSkeleton className="mt-2 h-7 w-32 rounded-card" label="Loading available cash" />
         ) : balanceState.status === "error" ? (
-          <PortfolioErrorState message="No pudimos cargar tu efectivo disponible." onRetry={loadBalance} />
+          <PortfolioErrorState message="We couldn't load your available cash." onRetry={loadBalance} />
         ) : (
           <p className="mt-2 text-xl font-bold text-ink">{formatMoney(balanceState.cashBalance)}</p>
         )}
@@ -78,7 +78,7 @@ export function InvestForm() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <label htmlFor="invest-symbol" className="text-sm font-medium text-ink">
-            Símbolo
+            Symbol
           </label>
           <select
             id="invest-symbol"
@@ -96,7 +96,7 @@ export function InvestForm() {
 
         <div className="flex flex-col gap-1">
           <label htmlFor="invest-amount" className="text-sm font-medium text-ink">
-            Monto a invertir
+            Amount to invest
           </label>
           <input
             id="invest-amount"
@@ -112,18 +112,18 @@ export function InvestForm() {
 
       {exceedsBalance ? (
         <p role="alert" className="text-sm text-red-700">
-          El monto ingresado supera tu efectivo disponible.
+          The amount entered exceeds your available cash.
         </p>
       ) : null}
 
       <div>
         <button
           type="button"
-          onClick={handleInvertirClick}
+          onClick={handleInvestClick}
           disabled={!canSubmit}
           className="rounded-card bg-ink px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Invertir
+          Invest
         </button>
       </div>
 

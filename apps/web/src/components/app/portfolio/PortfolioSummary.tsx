@@ -41,16 +41,16 @@ export function PortfolioSummary() {
   if (state.status === "loading") {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <PortfolioSkeleton label="Cargando efectivo disponible" />
-        <PortfolioSkeleton label="Cargando balance total" />
-        <PortfolioSkeleton label="Cargando ganancia y retorno" />
+        <PortfolioSkeleton label="Loading available cash" />
+        <PortfolioSkeleton label="Loading total balance" />
+        <PortfolioSkeleton label="Loading profit and return" />
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <PortfolioErrorState message="No pudimos cargar el resumen de tu cartera." onRetry={load} />
+      <PortfolioErrorState message="We couldn't load your portfolio summary." onRetry={load} />
     );
   }
 
@@ -60,17 +60,17 @@ export function PortfolioSummary() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <article className="rounded-card border border-gray-100 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-ink-muted">Efectivo disponible</h3>
+        <h3 className="text-sm font-semibold text-ink-muted">Available cash</h3>
         <p className="mt-2 text-xl font-bold text-ink">{formatMoney(cashBalance)}</p>
       </article>
 
       <article className="rounded-card border border-gray-100 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-ink-muted">Balance total</h3>
+        <h3 className="text-sm font-semibold text-ink-muted">Total balance</h3>
         <p className="mt-2 text-xl font-bold text-ink">{formatMoney(totalBalance)}</p>
       </article>
 
       <article className="rounded-card border border-gray-100 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-ink-muted">Ganancia / pérdida</h3>
+        <h3 className="text-sm font-semibold text-ink-muted">Profit / loss</h3>
         <p className={`mt-2 text-xl font-bold ${SIGN_TEXT_CLASS[sign]}`}>
           {formatMoney(totalProfit)}
         </p>

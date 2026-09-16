@@ -16,7 +16,7 @@ export function MarketTicker() {
 
   return (
     <ul
-      aria-label="Cotizaciones en vivo"
+      aria-label="Live quotes"
       className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
     >
       {MARKET_SYMBOL_GROUPS.ticker.map((symbol) => {
@@ -45,7 +45,7 @@ export function MarketTicker() {
             ) : (
               <MarketSkeletonBlock
                 className="mt-1 h-9"
-                aria-label={`Cargando ${symbol}`}
+                aria-label={`Loading ${symbol}`}
               />
             )}
           </li>

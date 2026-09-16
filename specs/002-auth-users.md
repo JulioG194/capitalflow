@@ -327,9 +327,9 @@ used to forge a valid session or reset link.
   triggered by reuse detection (AC14) or password reset (AC22).
 - CAPTCHA or bot-detection beyond the fixed per-IP rate limit on `/auth/login`.
 - Distributed/per-account rate limiting across many source IPs (see Edge Cases).
-- Any financial, portfolio, transaction, or "Modo Simulador" balance logic — this
+- Any financial, portfolio, transaction, or "Simulator mode" balance logic — this
   spec is identity and session management only.
-- Internationalization of auth pages beyond the project's default `es` locale
+- Internationalization of auth pages beyond the project's default `en` locale
   (per spec 001).
 
 ## 7. Implementation Notes

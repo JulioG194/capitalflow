@@ -47,6 +47,6 @@ that another agent (or a future engineer) can implement them without asking ques
 ## Simulator invariants (bake into every spec)
 
 - No real money. All monetary flows are simulated against an internal balance.
-- "Modo Simulador" badge visible in authenticated UI.
+- "Simulator mode" badge visible in authenticated UI.
 - No copy promises returns.
 - Financial values: `Decimal` in DB, strings in transit, never JS `number`.

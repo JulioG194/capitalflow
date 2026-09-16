@@ -41,19 +41,19 @@ export function HoldingsTable() {
   }, [load]);
 
   if (state.status === "loading") {
-    return <PortfolioSkeleton className="h-48 rounded-card" label="Cargando posiciones activas" />;
+    return <PortfolioSkeleton className="h-48 rounded-card" label="Loading active holdings" />;
   }
 
   if (state.status === "error") {
     return (
-      <PortfolioErrorState message="No pudimos cargar tus posiciones activas." onRetry={load} />
+      <PortfolioErrorState message="We couldn't load your active holdings." onRetry={load} />
     );
   }
 
   if (state.data.length === 0) {
     return (
       <p className="rounded-card border border-gray-100 bg-white px-4 py-6 text-sm text-ink-muted">
-        Todavía no tienes posiciones activas.
+        You don&apos;t have any active holdings yet.
       </p>
     );
   }
@@ -64,22 +64,22 @@ export function HoldingsTable() {
         <thead className="border-b border-gray-100 text-ink-muted">
           <tr>
             <th scope="col" className="px-4 py-3">
-              Símbolo
+              Symbol
             </th>
             <th scope="col" className="px-4 py-3">
-              Cantidad
+              Quantity
             </th>
             <th scope="col" className="px-4 py-3">
-              Precio promedio
+              Average price
             </th>
             <th scope="col" className="px-4 py-3">
-              Precio actual
+              Current price
             </th>
             <th scope="col" className="px-4 py-3">
-              Valor de mercado
+              Market value
             </th>
             <th scope="col" className="px-4 py-3">
-              Ganancia no realizada
+              Unrealized profit
             </th>
           </tr>
         </thead>
@@ -103,7 +103,7 @@ export function HoldingsTable() {
                       role="note"
                       className="ml-2 inline-block rounded-card border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900"
                     >
-                      precio puede estar desactualizado
+                      price may be outdated
                     </span>
                   )}
                 </td>

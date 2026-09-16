@@ -8,7 +8,6 @@ import Link from "next/link";
 import { loginSchema, type LoginInput } from "@capitalflow/shared-types";
 import { loginRequest } from "@/lib/auth/auth-client";
 import { ApiError } from "@/lib/auth/errors";
-import { translateFieldError } from "@/lib/auth/error-messages";
 import { AuthFormError } from "@/components/auth/AuthFormError";
 import {
   authFieldErrorClass,
@@ -20,9 +19,9 @@ import {
 // AC38: a single, fixed message on authentication failure — never the raw
 // API response text, and never anything that would let a caller infer
 // whether "wrong password" or "no such account" was the actual cause.
-const GENERIC_AUTH_ERROR = "Correo electrónico o contraseña incorrectos.";
+const GENERIC_AUTH_ERROR = "Incorrect email or password.";
 const GENERIC_UNEXPECTED_ERROR =
-  "No pudimos iniciar sesión. Inténtalo de nuevo en unos minutos.";
+  "We couldn't log you in. Please try again in a few minutes.";
 
 type LoginFormProps = {
   /** Path to return to after a successful login (spec 002 AC39's `redirect` param). */
@@ -67,14 +66,14 @@ export function LoginForm({ redirectTo, justRegistered }: LoginFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {justRegistered && !formError && (
         <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          Cuenta creada. Ahora inicia sesión.
+          Account created. Please log in.
         </p>
       )}
       <AuthFormError message={formError} />
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className={authLabelClass}>
-          Correo electrónico
+          Email
         </label>
         <input
           id="email"
@@ -87,7 +86,7 @@ export function LoginForm({ redirectTo, justRegistered }: LoginFormProps) {
         />
         {errors.email && (
           <p id="email-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.email.message)}
+            {errors.email.message}
           </p>
         )}
       </div>
@@ -95,13 +94,13 @@ export function LoginForm({ redirectTo, justRegistered }: LoginFormProps) {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="password" className={authLabelClass}>
-            Contraseña
+            Password
           </label>
           <Link
             href="/forgot-password"
             className="text-xs font-medium text-brand-600 hover:text-brand-700"
           >
-            ¿Olvidaste tu contraseña?
+            Forgot your password?
           </Link>
         </div>
         <input
@@ -115,13 +114,13 @@ export function LoginForm({ redirectTo, justRegistered }: LoginFormProps) {
         />
         {errors.password && (
           <p id="password-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.password.message)}
+            {errors.password.message}
           </p>
         )}
       </div>
 
       <button type="submit" disabled={isSubmitting} className={authSubmitButtonClass}>
-        {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
+        {isSubmitting ? "Logging in..." : "Log in"}
       </button>
     </form>
   );

@@ -51,16 +51,16 @@ describe("TransactionHistory", () => {
     render(<TransactionHistory />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos cargar tu historial de transacciones.",
+      "We couldn't load your transaction history.",
     );
 
     vi.mocked(getPortfolioTransactions).mockResolvedValueOnce(page());
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => {
       expect(getPortfolioTransactions).toHaveBeenCalledTimes(2);
     });
-    expect(await screen.findByText("Depósito")).toBeInTheDocument();
+    expect(await screen.findByText("Deposit")).toBeInTheDocument();
   });
 
   it("AC28: renders one row per transaction with '—' for null symbol/quantity and formatted amount/date", async () => {
@@ -68,10 +68,10 @@ describe("TransactionHistory", () => {
 
     render(<TransactionHistory />);
 
-    expect(await screen.findByText("Depósito")).toBeInTheDocument();
+    expect(await screen.findByText("Deposit")).toBeInTheDocument();
     expect(screen.getAllByText("—")).toHaveLength(2);
     expect(screen.getByText("$10,000.00")).toBeInTheDocument();
-    expect(screen.getByText("Completada")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(getPortfolioTransactions).toHaveBeenCalledWith(1, 20);
   });
 
@@ -93,7 +93,7 @@ describe("TransactionHistory", () => {
         totalPages: 2,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     await waitFor(() => {
       expect(getPortfolioTransactions).toHaveBeenCalledWith(2, 20);
@@ -109,6 +109,6 @@ describe("TransactionHistory", () => {
 
     render(<TransactionHistory />);
 
-    expect(await screen.findByText("Todavía no tienes transacciones.")).toBeInTheDocument();
+    expect(await screen.findByText("You don't have any transactions yet.")).toBeInTheDocument();
   });
 });

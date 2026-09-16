@@ -41,11 +41,11 @@ describe("PortfolioSummary", () => {
     render(<PortfolioSummary />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos cargar el resumen de tu cartera.",
+      "We couldn't load your portfolio summary.",
     );
 
     vi.mocked(getPortfolioSummary).mockResolvedValueOnce(summary());
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => {
       expect(getPortfolioSummary).toHaveBeenCalledTimes(2);

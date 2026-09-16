@@ -11,7 +11,7 @@ import { apiFetch, authFetch } from "./api-client";
 import { ApiError } from "./errors";
 import { setAccessToken } from "./token-store";
 
-const GENERIC_ERROR_MESSAGE = "Ocurrió un error inesperado. Inténtalo de nuevo.";
+const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 
 interface ErrorBody {
   message?: unknown;

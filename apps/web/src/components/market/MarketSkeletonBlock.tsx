@@ -19,7 +19,7 @@ export function MarketSkeletonBlock({
       aria-label={ariaLabel}
       className={`animate-pulse rounded-card bg-gray-100 ${className}`}
     >
-      <span className="sr-only">Cargando datos de mercado…</span>
+      <span className="sr-only">Loading market data…</span>
     </div>
   );
 }

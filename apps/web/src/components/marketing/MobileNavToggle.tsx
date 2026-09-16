@@ -27,7 +27,7 @@ export function MobileNavToggle({ links }: MobileNavToggleProps) {
         aria-controls="mobile-nav-panel"
         className="inline-flex items-center justify-center rounded-card p-2 text-ink"
       >
-        <span className="sr-only">{isOpen ? "Cerrar menú" : "Abrir menú"}</span>
+        <span className="sr-only">{isOpen ? "Close menu" : "Open menu"}</span>
         {isOpen ? (
           <X aria-hidden="true" size={24} />
         ) : (
@@ -58,7 +58,7 @@ export function MobileNavToggle({ links }: MobileNavToggleProps) {
                 onClick={() => setIsOpen(false)}
                 className="block rounded-card px-2 py-2 text-sm font-medium text-ink hover:bg-brand-50"
               >
-                Iniciar sesión
+                Log in
               </Link>
             </li>
             <li>
@@ -67,7 +67,7 @@ export function MobileNavToggle({ links }: MobileNavToggleProps) {
                 onClick={() => setIsOpen(false)}
                 className="mt-2 block rounded-card bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-brand-700"
               >
-                Registrarse
+                Sign up
               </Link>
             </li>
           </ul>

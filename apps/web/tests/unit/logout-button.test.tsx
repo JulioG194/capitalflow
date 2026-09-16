@@ -21,7 +21,7 @@ describe("LogoutButton", () => {
     logoutMock.mockResolvedValue(undefined);
     render(<LogoutButton />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log out" }));
 
     await waitFor(() => {
       expect(logoutMock).toHaveBeenCalledTimes(1);
@@ -35,7 +35,7 @@ describe("LogoutButton", () => {
     logoutMock.mockRejectedValue(new Error("network error"));
     render(<LogoutButton />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log out" }));
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith("/login");

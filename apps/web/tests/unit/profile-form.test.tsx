@@ -32,20 +32,20 @@ describe("ProfileForm", () => {
     render(<ProfileForm />);
 
     expect(screen.getByText("ada@example.com")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre")).toHaveValue("Ada");
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada");
   });
 
   it("shows a loading state while the session is still being restored", () => {
     authState = { user: null, isLoading: true };
     render(<ProfileForm />);
 
-    expect(screen.getByText("Cargando perfil...")).toBeInTheDocument();
+    expect(screen.getByText("Loading profile...")).toBeInTheDocument();
   });
 
   it("AC37: blocks submission when the name is cleared", async () => {
     render(<ProfileForm />);
-    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
       expect(updateMe).not.toHaveBeenCalled();
@@ -56,10 +56,10 @@ describe("ProfileForm", () => {
     vi.mocked(updateMe).mockResolvedValue({ ...user, name: "Ada Lovelace" });
     render(<ProfileForm />);
 
-    fireEvent.change(screen.getByLabelText("Nombre"), {
+    fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Ada Lovelace" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
       expect(updateMe).toHaveBeenCalledWith({ name: "Ada Lovelace" });
@@ -67,6 +67,6 @@ describe("ProfileForm", () => {
     await waitFor(() => {
       expect(refreshUserMock).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByText("Perfil actualizado.")).toBeInTheDocument();
+    expect(await screen.findByText("Profile updated.")).toBeInTheDocument();
   });
 });

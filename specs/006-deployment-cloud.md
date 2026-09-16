@@ -54,7 +54,7 @@ cross-site cookies, and TLS. No custom domain — free subdomains only.
 - [ ] **AC22**: All Vercel env vars scoped correctly: `NEXT_PUBLIC_*` for client-side (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STREAM_URL`); private vars for server-side only.
 
 ### Cold start UX
-- [ ] **AC23**: When the frontend receives a network error, 502, or 503 from the API within the first 60s of the session, it shows a non-blocking banner: "El servicio está despertando… (~30s)". Banner disappears on first successful request.
+- [ ] **AC23**: When the frontend receives a network error, 502, or 503 from the API within the first 60s of the session, it shows a non-blocking banner: "The service is waking up… (~30s)". Banner disappears on first successful request.
 - [ ] **AC24**: When Socket.io connection to `apps/market-stream` fails initially, the market page shows a "conectando…" indicator instead of an error state, and retries with exponential backoff (max 60s).
 - [ ] **AC25**: The `/health` endpoint on `apps/api` returns 200 with `{ status: "ok", uptime, db: "ok" | "error" }`. It does NOT require auth. It returns 503 if DB is unreachable.
 - [ ] **AC26**: The `/health` endpoint on `apps/market-stream` returns 200 with `{ status: "ok", uptime, redis: "ok" | "error", finnhub: "connected" | "disconnected" }`.

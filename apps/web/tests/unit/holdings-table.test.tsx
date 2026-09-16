@@ -41,16 +41,16 @@ describe("HoldingsTable", () => {
     render(<HoldingsTable />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos cargar tus posiciones activas.",
+      "We couldn't load your active holdings.",
     );
 
     vi.mocked(getPortfolioHoldings).mockResolvedValueOnce([]);
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => {
       expect(getPortfolioHoldings).toHaveBeenCalledTimes(2);
     });
-    expect(await screen.findByText("Todavía no tienes posiciones activas.")).toBeInTheDocument();
+    expect(await screen.findByText("You don't have any active holdings yet.")).toBeInTheDocument();
   });
 
   it("AC27: renders one row per holding with formatted money fields", async () => {
@@ -65,7 +65,7 @@ describe("HoldingsTable", () => {
     expect(screen.getAllByText("$100.00")).toHaveLength(2); // averagePrice and unrealizedProfit
     expect(screen.getByText("$110.00")).toBeInTheDocument();
     expect(screen.getByText("$1,100.00")).toBeInTheDocument();
-    expect(screen.queryByText("precio puede estar desactualizado")).not.toBeInTheDocument();
+    expect(screen.queryByText("price may be outdated")).not.toBeInTheDocument();
   });
 
   it("AC27: shows a stale-price indicator when isPriceStale is true", async () => {
@@ -75,6 +75,6 @@ describe("HoldingsTable", () => {
 
     render(<HoldingsTable />);
 
-    expect(await screen.findByText("precio puede estar desactualizado")).toBeInTheDocument();
+    expect(await screen.findByText("price may be outdated")).toBeInTheDocument();
   });
 });

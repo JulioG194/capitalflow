@@ -12,42 +12,42 @@ import { CTAButton } from "@/components/marketing/CTAButton";
 export const revalidate = 86400;
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Cómo funciona",
+  title: "How it works",
   description:
-    "Conoce el flujo del simulador de inversiones de CapitalFlow en 5 pasos: regístrate, recibe saldo simulado, explora el mercado, simula operaciones y revisa tu cartera.",
+    "See CapitalFlow's investment simulator flow in 5 steps: sign up, receive simulated cash, explore the market, simulate trades, and review your portfolio.",
   path: "/how-it-works",
 });
 
 const steps = [
   {
     icon: UserPlus,
-    title: "1. Crea tu cuenta",
+    title: "1. Create your account",
     description:
-      "Regístrate con tu correo electrónico. No se solicitan datos bancarios ni de pago: es un simulador educativo, gratuito.",
+      "Sign up with your email. No bank or payment details are requested: this is a free educational simulator.",
   },
   {
     icon: Wallet,
-    title: "2. Recibe saldo simulado",
+    title: "2. Receive simulated cash",
     description:
-      "Tu cuenta arranca con un saldo simulado para que puedas empezar a practicar de inmediato, sin dinero real de por medio.",
+      "Your account starts with simulated cash so you can begin practicing immediately, with no real money involved.",
   },
   {
     icon: LineChart,
-    title: "3. Explora el mercado",
+    title: "3. Explore the market",
     description:
-      "Consulta cotizaciones de activos con datos reales (retraso de hasta 15 minutos) para decidir qué te interesa simular.",
+      "Check asset quotes with real data (delayed by up to 15 minutes) to decide what you want to simulate.",
   },
   {
     icon: ArrowLeftRight,
-    title: "4. Simula tus operaciones",
+    title: "4. Simulate your trades",
     description:
-      "Compra y vende con tu saldo simulado. Cada operación se registra para que puedas revisar tus decisiones después.",
+      "Buy and sell with your simulated cash. Every trade is recorded so you can review your decisions later.",
   },
   {
     icon: BarChart3,
-    title: "5. Revisa tu cartera",
+    title: "5. Review your portfolio",
     description:
-      "Sigue la evolución de tu cartera simulada con el tiempo y aprende de tus decisiones sin ningún riesgo real.",
+      "Track how your simulated portfolio evolves over time and learn from your decisions with no real risk.",
   },
 ];
 
@@ -55,11 +55,11 @@ export default function HowItWorksPage() {
   return (
     <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <h1 className="text-4xl font-bold tracking-tight text-ink">
-        Cómo funciona CapitalFlow
+        How CapitalFlow works
       </h1>
       <p className="mt-4 text-lg text-ink-muted">
-        Un recorrido simple, pensado para aprender a invertir practicando con
-        una cartera simulada, no con dinero real.
+        A simple path designed to teach investing by practicing with a
+        simulated portfolio, not with real money.
       </p>
 
       <ol className="mt-10 flex flex-col gap-6">
@@ -83,7 +83,7 @@ export default function HowItWorksPage() {
       </ol>
 
       <div className="mt-10">
-        <CTAButton href="/register">Registrarse gratis</CTAButton>
+        <CTAButton href="/register">Sign up free</CTAButton>
       </div>
     </section>
   );

@@ -60,7 +60,7 @@ describe("MarketTicker", () => {
 
     render(<MarketTicker />);
 
-    expect(screen.getByText(/189,50/)).toBeInTheDocument();
+    expect(screen.getByText("$189.50")).toBeInTheDocument();
     expect(screen.getByText("+1.25%")).toBeInTheDocument();
   });
 });

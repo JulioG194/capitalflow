@@ -4,9 +4,9 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Iniciar sesión",
+  title: "Log in",
   description:
-    "Inicia sesión en tu cuenta de CapitalFlow, el simulador de inversiones con fines educativos.",
+    "Log in to your CapitalFlow account, the educational investment simulator.",
   path: "/login",
 });
 
@@ -23,8 +23,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <section className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16 sm:px-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-ink">Iniciar sesión</h1>
-        <p className="mt-2 text-sm text-ink-muted">Accede a tu cartera simulada.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-ink">Log in</h1>
+        <p className="mt-2 text-sm text-ink-muted">Access your simulated portfolio.</p>
       </div>
 
       <LoginForm
@@ -33,9 +33,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       />
 
       <p className="text-sm text-ink-muted">
-        ¿No tienes una cuenta?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/register" className="font-medium text-brand-600 hover:text-brand-700">
-          Regístrate
+          Sign up
         </Link>
       </p>
     </section>

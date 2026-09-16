@@ -6,7 +6,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
     class="relative border-b border-gray-100 bg-white"
   >
     <nav
-      aria-label="Principal"
+      aria-label="Primary"
       class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6"
     >
       <a
@@ -14,7 +14,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
         href="/"
       >
         <img
-          alt="Logotipo de CapitalFlow"
+          alt="CapitalFlow logo"
           data-nimg="1"
           decoding="async"
           height="32"
@@ -34,7 +34,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
             class="text-sm font-medium text-ink-muted hover:text-ink"
             href="/how-it-works"
           >
-            Cómo funciona
+            How it works
           </a>
         </li>
         <li>
@@ -42,7 +42,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
             class="text-sm font-medium text-ink-muted hover:text-ink"
             href="/pricing"
           >
-            Precios
+            Pricing
           </a>
         </li>
         <li>
@@ -50,7 +50,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
             class="text-sm font-medium text-ink-muted hover:text-ink"
             href="/about"
           >
-            Nosotros
+            About
           </a>
         </li>
       </ul>
@@ -61,13 +61,13 @@ exports[`MarketingNav > matches snapshot 1`] = `
           class="text-sm font-medium text-ink hover:text-brand-600"
           href="/login"
         >
-          Iniciar sesión
+          Log in
         </a>
         <a
           class="inline-flex items-center justify-center rounded-card px-5 py-2.5 text-sm font-semibold transition-colors bg-brand-600 text-white hover:bg-brand-700 "
           href="/register"
         >
-          Registrarse
+          Sign up
         </a>
       </div>
       <div
@@ -82,7 +82,7 @@ exports[`MarketingNav > matches snapshot 1`] = `
           <span
             class="sr-only"
           >
-            Abrir menú
+            Open menu
           </span>
           <svg
             aria-hidden="true"

@@ -3,8 +3,8 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Restablecer contraseña",
-  description: "Elige una nueva contraseña para tu cuenta de CapitalFlow.",
+  title: "Reset password",
+  description: "Choose a new password for your CapitalFlow account.",
   path: "/reset-password",
 });
 
@@ -21,10 +21,10 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
     <section className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16 sm:px-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-ink">
-          Restablecer contraseña
+          Reset password
         </h1>
         <p className="mt-2 text-sm text-ink-muted">
-          Elige una nueva contraseña para tu cuenta.
+          Choose a new password for your account.
         </p>
       </div>
 

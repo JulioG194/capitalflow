@@ -6,7 +6,7 @@ import type {
 import { apiFetch } from "@/lib/auth/api-client";
 import { ApiError } from "@/lib/auth/errors";
 
-const GENERIC_ERROR_MESSAGE = "Ocurrió un error inesperado. Inténtalo de nuevo.";
+const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 
 interface ErrorBody {
   message?: unknown;

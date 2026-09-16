@@ -5,9 +5,9 @@ import { SITE_NAME } from "@/lib/site-config";
 export const revalidate = 86400;
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Términos de servicio",
+  title: "Terms of Service",
   description:
-    "Términos de servicio de CapitalFlow: un simulador de inversiones educativo, sin dinero real ni garantía de rendimientos.",
+    "CapitalFlow Terms of Service: an educational investment simulator, with no real money and no guaranteed returns.",
   path: "/terms",
 });
 
@@ -15,35 +15,35 @@ export default function TermsPage() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-4xl font-bold tracking-tight text-ink">
-        Términos de servicio
+        Terms of Service
       </h1>
       <p className="mt-2 text-sm text-ink-muted">
-        Última actualización: versión inicial (documento en construcción).
+        Last updated: initial version (document in progress).
       </p>
 
       <div className="mt-8 flex flex-col gap-6 text-ink-muted">
         <p>
-          {SITE_NAME} es un simulador de inversiones con fines educativos. Al
-          usar la plataforma aceptas que ninguna cantidad de dinero real es
-          depositada, transferida, invertida o gestionada en tu nombre.
+          {SITE_NAME} is an educational investment simulator. By using the
+          platform you accept that no real money is deposited, transferred,
+          invested, or managed on your behalf.
         </p>
 
-        <h2 className="text-xl font-semibold text-ink">Naturaleza del servicio</h2>
+        <h2 className="text-xl font-semibold text-ink">Nature of the service</h2>
         <p>
-          Todos los saldos, carteras, operaciones y resultados que veas dentro
-          de {SITE_NAME} son simulados con fines educativos. No representan
-          dinero real ni constituyen asesoría financiera.
+          All balances, portfolios, trades, and results you see inside{" "}
+          {SITE_NAME} are simulated for educational purposes. They do not
+          represent real money and do not constitute financial advice.
         </p>
 
-        <h2 className="text-xl font-semibold text-ink">Sin garantías</h2>
+        <h2 className="text-xl font-semibold text-ink">No guarantees</h2>
         <p>
-          {SITE_NAME} no promete ni garantiza rendimientos, ganancias ni
-          resultados de ningún tipo, reales o simulados.
+          {SITE_NAME} does not promise or guarantee returns, profits, or
+          results of any kind, real or simulated.
         </p>
 
         <p className="text-sm">
-          Este documento es un stub inicial y será ampliado en una versión
-          posterior del producto.
+          This document is an initial stub and will be expanded in a later
+          version of the product.
         </p>
       </div>
     </section>

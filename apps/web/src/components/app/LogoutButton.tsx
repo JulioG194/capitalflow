@@ -33,7 +33,7 @@ export function LogoutButton() {
       disabled={isLoggingOut}
       className="text-sm font-medium text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+      {isLoggingOut ? "Logging out..." : "Log out"}
     </button>
   );
 }

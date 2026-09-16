@@ -14,52 +14,52 @@ import { waitForResetToken } from "./support/reset-link";
 test.describe("register → login → view /app/profile → edit name → logout", () => {
   const email = e2eEmail("register-flow");
   const password = "Password123";
-  const updatedName = "Ada Actualizada";
+  const updatedName = "Ada Updated";
 
   test("completes the full account lifecycle through the UI", async ({
     page,
   }) => {
     // --- Register (AC1, AC36) ---
     await page.goto("/register");
-    await page.getByLabel("Nombre").fill("Ada Lovelace");
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Crear cuenta" }).click();
+    await page.getByLabel("Name").fill("Ada Lovelace");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Create account" }).click();
 
     // Registration issues no session (AC1) — RegisterForm redirects to
     // /login rather than straight into the app.
     await expect(page).toHaveURL(/\/login\?registered=1$/);
     await expect(
-      page.getByText("Cuenta creada. Ahora inicia sesión."),
+      page.getByText("Account created. Please log in."),
     ).toBeVisible();
 
     // --- Log in (AC6, AC41) ---
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/app\/profile$/);
 
     // --- View /app/profile (AC40) ---
     await expect(
-      page.getByRole("heading", { name: "Mi perfil" }),
+      page.getByRole("heading", { name: "My profile" }),
     ).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
-    const nameInput = page.getByLabel("Nombre");
+    const nameInput = page.getByLabel("Name");
     await expect(nameInput).toHaveValue("Ada Lovelace");
 
     // --- Edit name (AC28, AC40) ---
     await nameInput.fill(updatedName);
-    await page.getByRole("button", { name: "Guardar cambios" }).click();
-    await expect(page.getByText("Perfil actualizado.")).toBeVisible();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Profile updated.")).toBeVisible();
     await expect(nameInput).toHaveValue(updatedName);
 
     // Reload to prove the new name was actually persisted server-side
     // (via PATCH /auth/me), not just held in local component state.
     await page.reload();
-    await expect(page.getByLabel("Nombre")).toHaveValue(updatedName);
+    await expect(page.getByLabel("Name")).toHaveValue(updatedName);
 
     // --- Log out (AC42) ---
-    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
 });
@@ -85,24 +85,24 @@ test.describe("forgot password → reset → old session invalidated → new log
     // existing refresh-token session (cookie) to later prove gets
     // invalidated by the reset (AC22).
     await page.goto("/register");
-    await page.getByLabel("Nombre").fill("Grace Hopper");
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(oldPassword);
-    await page.getByRole("button", { name: "Crear cuenta" }).click();
+    await page.getByLabel("Name").fill("Grace Hopper");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(oldPassword);
+    await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/login\?registered=1$/);
 
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(oldPassword);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(oldPassword);
+    await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/app\/profile$/);
 
     // --- Forgot password (AC20) ---
     await page.goto("/forgot-password");
-    await page.getByLabel("Correo electrónico").fill(email);
+    await page.getByLabel("Email").fill(email);
     await page
-      .getByRole("button", { name: "Enviar enlace de recuperación" })
+      .getByRole("button", { name: "Send reset link" })
       .click();
-    await expect(page.getByText(/Si ese correo existe/)).toBeVisible();
+    await expect(page.getByText(/If that email exists/)).toBeVisible();
 
     // AC34: the only concrete `EmailService` in this spec logs the
     // recipient/subject/reset-link to the server console instead of
@@ -114,12 +114,12 @@ test.describe("forgot password → reset → old session invalidated → new log
 
     // --- Reset password (AC22) ---
     await page.goto(`/reset-password?token=${token}`);
-    await page.getByLabel("Nueva contraseña").fill(newPassword);
+    await page.getByLabel("New password").fill(newPassword);
     await page
-      .getByRole("button", { name: "Actualizar contraseña" })
+      .getByRole("button", { name: "Update password" })
       .click();
     await expect(
-      page.getByText("Tu contraseña fue actualizada."),
+      page.getByText("Your password was updated."),
     ).toBeVisible();
 
     // AC22: resetting the password revokes *all* existing refresh tokens
@@ -133,9 +133,9 @@ test.describe("forgot password → reset → old session invalidated → new log
 
     // --- New login with the new password succeeds ---
     await page.goto("/login");
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(newPassword);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(newPassword);
+    await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/app\/profile$/);
     await expect(page.getByText(email)).toBeVisible();
   });

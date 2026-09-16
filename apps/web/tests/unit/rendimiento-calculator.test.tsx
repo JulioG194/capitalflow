@@ -31,8 +31,8 @@ describe("RendimientoCalculator", () => {
   it("AC18: recomputes the estimate whenever amount, plan, or months changes", () => {
     render(<RendimientoCalculator />);
 
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "1000" } });
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "12" } });
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "12" } });
 
     // moderado (7%/yr) monthlyRate = 0.07/12; over 12 months on $1000
     // estimatedReturn = 1000 * ((1 + 0.07/12) ** 12 - 1) = 72.29 (rounded)
@@ -46,45 +46,45 @@ describe("RendimientoCalculator", () => {
   it("AC19: labels the result as an illustrative, non-guaranteed estimate", () => {
     render(<RendimientoCalculator />);
 
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "1000" } });
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "12" } });
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "12" } });
 
-    expect(screen.getByText(/Estimación ilustrativa, no garantizada/)).toBeInTheDocument();
+    expect(screen.getByText(/Illustrative estimate, not guaranteed/)).toBeInTheDocument();
   });
 
   it("AC20: an empty/zero/negative amount shows a validation message and no numeric result", () => {
     render(<RendimientoCalculator />);
 
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "12" } });
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "0" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("monto simulado mayor a $0");
-    expect(screen.queryByText(/Estimación ilustrativa/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "12" } });
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "0" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("simulated amount greater than $0");
+    expect(screen.queryByText(/Illustrative estimate/)).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "-5" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("monto simulado mayor a $0");
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "-5" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("simulated amount greater than $0");
   });
 
   it("AC20: an empty/zero/>60 months shows a validation message and no numeric result", () => {
     render(<RendimientoCalculator />);
 
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "1000" } });
 
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "0" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("entre 1 y 60 meses");
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "0" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("months between 1 and 60");
 
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "61" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("entre 1 y 60 meses");
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "61" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("months between 1 and 60");
 
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("entre 1 y 60 meses");
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("months between 1 and 60");
   });
 
   it("AC21: never issues a network request as inputs change", () => {
     render(<RendimientoCalculator />);
 
-    fireEvent.change(screen.getByLabelText("Monto simulado"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Simulated amount"), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText("Plan"), { target: { value: "agresivo" } });
-    fireEvent.change(screen.getByLabelText("Plazo (meses)"), { target: { value: "24" } });
+    fireEvent.change(screen.getByLabelText("Term (months)"), { target: { value: "24" } });
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -103,9 +103,9 @@ describe("RendimientoCalculator", () => {
     const optionTexts = Array.from(select.options).map((option) => option.textContent);
 
     expect(optionTexts).toEqual([
-      "Conservador — 4% anual estimado",
-      "Moderado — 7% anual estimado",
-      "Agresivo — 11% anual estimado",
+      "Conservative — 4% estimated annual",
+      "Moderate — 7% estimated annual",
+      "Aggressive — 11% estimated annual",
     ]);
   });
 });

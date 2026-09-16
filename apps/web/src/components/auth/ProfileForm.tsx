@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, type UpdateProfileInput } from "@capitalflow/shared-types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { updateMe } from "@/lib/auth/auth-client";
-import { translateFieldError } from "@/lib/auth/error-messages";
 import { AuthFormError } from "@/components/auth/AuthFormError";
 import {
   authFieldErrorClass,
@@ -15,7 +14,7 @@ import {
   authSubmitButtonClass,
 } from "@/components/auth/form-styles";
 
-const GENERIC_UPDATE_ERROR = "No pudimos actualizar tu perfil. Inténtalo de nuevo.";
+const GENERIC_UPDATE_ERROR = "We couldn't update your profile. Please try again.";
 
 /**
  * AC40: displays the authenticated user's current name/email and lets them
@@ -50,13 +49,13 @@ export function ProfileForm() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-ink-muted">Cargando perfil...</p>;
+    return <p className="text-sm text-ink-muted">Loading profile...</p>;
   }
 
   if (!user) {
     return (
       <p className="text-sm text-ink-muted">
-        No pudimos cargar tu perfil. Intenta iniciar sesión de nuevo.
+        We couldn&apos;t load your profile. Try logging in again.
       </p>
     );
   }
@@ -66,12 +65,12 @@ export function ProfileForm() {
       <AuthFormError message={formError} />
       {saved && !formError && (
         <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          Perfil actualizado.
+          Profile updated.
         </p>
       )}
 
       <div className="flex flex-col gap-1.5">
-        <span className={authLabelClass}>Correo electrónico</span>
+        <span className={authLabelClass}>Email</span>
         <p className="rounded-card border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-ink-muted">
           {user.email}
         </p>
@@ -79,7 +78,7 @@ export function ProfileForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="name" className={authLabelClass}>
-          Nombre
+          Name
         </label>
         <input
           id="name"
@@ -92,13 +91,13 @@ export function ProfileForm() {
         />
         {errors.name && (
           <p id="name-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.name.message)}
+            {errors.name.message}
           </p>
         )}
       </div>
 
       <button type="submit" disabled={isSubmitting} className={authSubmitButtonClass}>
-        {isSubmitting ? "Guardando..." : "Guardar cambios"}
+        {isSubmitting ? "Saving..." : "Save changes"}
       </button>
     </form>
   );

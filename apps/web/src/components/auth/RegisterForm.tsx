@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { registerSchema, type RegisterInput } from "@capitalflow/shared-types";
 import { registerRequest } from "@/lib/auth/auth-client";
 import { ApiError } from "@/lib/auth/errors";
-import { translateFieldError } from "@/lib/auth/error-messages";
 import { AuthFormError } from "@/components/auth/AuthFormError";
 import {
   authFieldErrorClass,
@@ -17,7 +16,7 @@ import {
 } from "@/components/auth/form-styles";
 
 const GENERIC_REGISTER_ERROR =
-  "No pudimos crear tu cuenta. Inténtalo de nuevo en unos minutos.";
+  "We couldn't create your account. Please try again in a few minutes.";
 
 /**
  * AC36/AC37/AC43: `react-hook-form` bound to the shared `registerSchema` via
@@ -41,7 +40,7 @@ export function RegisterForm() {
       router.push("/login?registered=1");
     } catch (error) {
       if (error instanceof ApiError && error.code === "EMAIL_ALREADY_EXISTS") {
-        setFormError("Ya existe una cuenta con este correo electrónico.");
+        setFormError("An account with this email already exists.");
         return;
       }
       setFormError(GENERIC_REGISTER_ERROR);
@@ -54,7 +53,7 @@ export function RegisterForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="name" className={authLabelClass}>
-          Nombre
+          Name
         </label>
         <input
           id="name"
@@ -67,14 +66,14 @@ export function RegisterForm() {
         />
         {errors.name && (
           <p id="name-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.name.message)}
+            {errors.name.message}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className={authLabelClass}>
-          Correo electrónico
+          Email
         </label>
         <input
           id="email"
@@ -87,14 +86,14 @@ export function RegisterForm() {
         />
         {errors.email && (
           <p id="email-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.email.message)}
+            {errors.email.message}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="password" className={authLabelClass}>
-          Contraseña
+          Password
         </label>
         <input
           id="password"
@@ -107,17 +106,17 @@ export function RegisterForm() {
         />
         {errors.password ? (
           <p id="password-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.password.message)}
+            {errors.password.message}
           </p>
         ) : (
           <p id="password-hint" className="text-xs text-ink-muted">
-            Mínimo 10 caracteres, con al menos una letra y un número.
+            At least 10 characters, including one letter and one number.
           </p>
         )}
       </div>
 
       <button type="submit" disabled={isSubmitting} className={authSubmitButtonClass}>
-        {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
+        {isSubmitting ? "Creating account..." : "Create account"}
       </button>
     </form>
   );

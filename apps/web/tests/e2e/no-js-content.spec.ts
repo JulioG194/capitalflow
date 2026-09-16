@@ -16,17 +16,17 @@ test.describe("Homepage renders and is navigable with JavaScript disabled (AC8)"
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Aprende a invertir sin arriesgar un solo peso real",
+        name: "Learn to invest without risking a single real dollar",
       }),
     ).toBeVisible();
 
-    const registerCta = page.getByRole("link", { name: "Registrarse gratis" }).first();
+    const registerCta = page.getByRole("link", { name: "Sign up free" }).first();
     await expect(registerCta).toBeVisible();
     await expect(registerCta).toHaveAttribute("href", "/register");
 
     await expect(
       page.getByText(
-        "Simulador de inversiones con fines educativos. No se manejan fondos reales.",
+        "Educational investment simulator. No real funds are involved.",
       ).first(),
     ).toBeVisible();
 
@@ -40,7 +40,7 @@ test.describe("Homepage renders and is navigable with JavaScript disabled (AC8)"
     const page = await context.newPage();
 
     await page.goto("/");
-    await page.getByRole("link", { name: "Registrarse gratis" }).first().click();
+    await page.getByRole("link", { name: "Sign up free" }).first().click();
     await expect(page).toHaveURL(/\/register$/);
 
     await context.close();

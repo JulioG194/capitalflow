@@ -8,7 +8,7 @@ describe("SimulatorBadge", () => {
     render(<SimulatorBadge />);
     expect(
       screen.getByText(
-        "Simulador de inversiones con fines educativos. No se manejan fondos reales.",
+        "Educational investment simulator. No real funds are involved.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(DISCLAIMER_TEXT)).toBeInTheDocument();

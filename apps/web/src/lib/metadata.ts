@@ -38,7 +38,7 @@ export function buildPageMetadata({
       url,
       siteName: SITE_NAME,
       type: "website",
-      locale: "es_ES",
+      locale: "en_US",
       images: [DEFAULT_OG_IMAGE],
     },
     twitter: {

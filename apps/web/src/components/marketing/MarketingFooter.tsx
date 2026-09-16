@@ -26,7 +26,7 @@ export function MarketingFooter() {
           ))}
         </nav>
         <p className="text-xs text-ink-muted">
-          © {year} {SITE_NAME}. Todos los derechos reservados.
+          © {year} {SITE_NAME}. All rights reserved.
         </p>
       </div>
     </footer>

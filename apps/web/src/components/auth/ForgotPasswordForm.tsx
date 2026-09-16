@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@capitalflow/shared-types";
 import { forgotPasswordRequest } from "@/lib/auth/auth-client";
-import { translateFieldError } from "@/lib/auth/error-messages";
 import { AuthFormError } from "@/components/auth/AuthFormError";
 import {
   authFieldErrorClass,
@@ -15,11 +14,11 @@ import {
 } from "@/components/auth/form-styles";
 
 const GENERIC_ERROR =
-  "No pudimos procesar tu solicitud. Inténtalo de nuevo en unos minutos.";
+  "We couldn't process your request. Please try again in a few minutes.";
 // AC20/AC21: the API always returns this same message whether or not the
 // email exists — the UI must never imply otherwise by showing anything else.
 const SENT_MESSAGE =
-  "Si ese correo existe en nuestro sistema, te enviamos un enlace para restablecer tu contraseña.";
+  "If that email exists in our system, we sent a link to reset your password.";
 
 /** AC36/AC37/AC43: resolver bound to the shared `forgotPasswordSchema`. */
 export function ForgotPasswordForm() {
@@ -55,7 +54,7 @@ export function ForgotPasswordForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className={authLabelClass}>
-          Correo electrónico
+          Email
         </label>
         <input
           id="email"
@@ -68,13 +67,13 @@ export function ForgotPasswordForm() {
         />
         {errors.email && (
           <p id="email-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.email.message)}
+            {errors.email.message}
           </p>
         )}
       </div>
 
       <button type="submit" disabled={isSubmitting} className={authSubmitButtonClass}>
-        {isSubmitting ? "Enviando..." : "Enviar enlace de recuperación"}
+        {isSubmitting ? "Sending..." : "Send reset link"}
       </button>
     </form>
   );

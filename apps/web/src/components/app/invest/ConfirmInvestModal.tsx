@@ -22,11 +22,11 @@ interface ConfirmInvestModalProps {
 }
 
 const ERROR_MESSAGES: Record<ErrorKind, string> = {
-  insufficient_funds: "No tienes suficiente efectivo simulado para esta inversión.",
+  insufficient_funds: "You don't have enough simulated cash for this investment.",
   price_unavailable:
-    "No hay un precio actualizado disponible para este símbolo en este momento. Inténtalo de nuevo en unos segundos.",
-  rate_limited: "Hiciste demasiados intentos de inversión. Espera antes de volver a intentarlo.",
-  generic: "Ocurrió un error inesperado. Inténtalo de nuevo.",
+    "There is no up-to-date price available for this symbol right now. Please try again in a few seconds.",
+  rate_limited: "Too many investment attempts. Please wait before trying again.",
+  generic: "An unexpected error occurred. Please try again.",
 };
 
 function classifyError(error: unknown): ErrorState {
@@ -45,7 +45,7 @@ function classifyError(error: unknown): ErrorState {
 }
 
 /**
- * AC25: "Confirmar inversión" modal — shows the selected symbol/amount and
+ * AC25: "Confirm investment" modal — shows the selected symbol/amount and
  * simulated-investing copy. AC26: the confirm button is disabled/loading for
  * the request's duration. AC27-AC30: success/insufficient-funds/
  * price-unavailable/rate-limited outcomes each get their own message; the
@@ -102,31 +102,31 @@ export function ConfirmInvestModal({ symbol, amount, onClose, onInvested }: Conf
     >
       <div className="w-full max-w-md rounded-card bg-white p-6 shadow-lg">
         <h2 id="confirm-invest-heading" className="text-lg font-semibold text-ink">
-          Confirmar inversión
+          Confirm investment
         </h2>
 
         {status === "success" ? (
-          <p className="mt-4 text-sm font-medium text-green-700">Inversión simulada realizada</p>
+          <p className="mt-4 text-sm font-medium text-green-700">Simulated investment placed</p>
         ) : (
           <>
             <div className="mt-4 flex flex-col gap-1 text-sm text-ink">
               <p>
-                Símbolo: <span className="font-medium">{symbol}</span>
+                Symbol: <span className="font-medium">{symbol}</span>
               </p>
               <p>
-                Monto: <span className="font-medium">{formatMoney(amount)}</span>
+                Amount: <span className="font-medium">{formatMoney(amount)}</span>
               </p>
             </div>
 
             <p className="mt-3 text-xs text-amber-700">
-              Esta inversión es simulada: no se mueve dinero real ni se garantiza ningún retorno.
+              This investment is simulated: no real money moves and no return is guaranteed.
             </p>
 
             {status === "error" && errorState ? (
               <p role="alert" className="mt-3 text-sm text-red-700">
                 {ERROR_MESSAGES[errorState.kind]}
                 {errorState.kind === "rate_limited" && errorState.retryAfterSeconds !== undefined
-                  ? ` Espera ${errorState.retryAfterSeconds} segundos antes de reintentar.`
+                  ? ` Wait ${errorState.retryAfterSeconds} seconds before retrying.`
                   : null}
               </p>
             ) : null}
@@ -137,7 +137,7 @@ export function ConfirmInvestModal({ symbol, amount, onClose, onInvested }: Conf
                 onClick={onClose}
                 className="rounded-card border border-gray-200 px-3 py-1.5 text-sm font-medium text-ink"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="button"
@@ -145,7 +145,7 @@ export function ConfirmInvestModal({ symbol, amount, onClose, onInvested }: Conf
                 disabled={status === "submitting"}
                 className="rounded-card bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {status === "submitting" ? "Confirmando…" : "Confirmar"}
+                {status === "submitting" ? "Confirming…" : "Confirm"}
               </button>
             </div>
           </>

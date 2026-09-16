@@ -10,7 +10,7 @@ const MARKETING_ROUTES = [
 ];
 
 const DISCLAIMER_TEXT =
-  "Simulador de inversiones con fines educativos. No se manejan fondos reales.";
+  "Educational investment simulator. No real funds are involved.";
 
 test.describe("Simulator disclaimer visible on every marketing page (AC5)", () => {
   for (const route of MARKETING_ROUTES) {

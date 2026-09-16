@@ -17,36 +17,36 @@ test.describe("register → login → view /app/portfolio baseline", () => {
   }) => {
     // --- Register + log in (spec 002 AC1/AC6) ---
     await page.goto("/register");
-    await page.getByLabel("Nombre").fill("Katherine Johnson");
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Crear cuenta" }).click();
+    await page.getByLabel("Name").fill("Katherine Johnson");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/login\?registered=1$/);
 
-    await page.getByLabel("Correo electrónico").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/app\/profile$/);
 
     // --- Navigate to /app/portfolio (spec 004 AC22) ---
     await page.goto("/app/portfolio");
-    await expect(page.getByRole("heading", { name: "Mi cartera" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My portfolio" })).toBeVisible();
 
     // --- Summary: $10,000 baseline, zero profit/ROI (AC4, AC25) ---
-    await expect(page.getByText("Efectivo disponible")).toBeVisible();
+    await expect(page.getByText("Available cash")).toBeVisible();
     await expect(page.getByText("$10,000.00").first()).toBeVisible();
     await expect(page.getByText("ROI: 0.00%")).toBeVisible();
 
     // --- Allocation: a single "cash" slice at 100% (AC4, AC26) ---
-    await expect(page.getByRole("img", { name: /distribución de la cartera/ })).toBeVisible();
-    await expect(page.getByText("Efectivo — 100.00%")).toBeVisible();
+    await expect(page.getByRole("img", { name: /portfolio allocation/ })).toBeVisible();
+    await expect(page.getByText("Cash — 100.00%")).toBeVisible();
 
     // --- Holdings: empty (AC12, AC27) ---
-    await expect(page.getByText("Todavía no tienes posiciones activas.")).toBeVisible();
+    await expect(page.getByText("You don't have any active holdings yet.")).toBeVisible();
 
     // --- Transactions: exactly one deposit (AC2, AC28) ---
-    await expect(page.getByText("Depósito")).toBeVisible();
-    await expect(page.getByText("Completada")).toBeVisible();
+    await expect(page.getByText("Deposit")).toBeVisible();
+    await expect(page.getByText("Completed")).toBeVisible();
   });
 });
 

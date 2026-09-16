@@ -14,11 +14,11 @@ describe("ForgotPasswordForm", () => {
 
   it("AC37: blocks submission on an invalid email", async () => {
     render(<ForgotPasswordForm />);
-    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "not-an-email" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Enviar enlace de recuperación" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
     await waitFor(() => {
       expect(forgotPasswordRequest).not.toHaveBeenCalled();
@@ -31,16 +31,16 @@ describe("ForgotPasswordForm", () => {
     });
 
     render(<ForgotPasswordForm />);
-    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "ada@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar enlace de recuperación" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
     await waitFor(() => {
       expect(forgotPasswordRequest).toHaveBeenCalledWith({ email: "ada@example.com" });
     });
     expect(
-      await screen.findByText(/te enviamos un enlace para restablecer tu contraseña/i),
+      await screen.findByText(/we sent a link to reset your password/i),
     ).toBeInTheDocument();
   });
 });

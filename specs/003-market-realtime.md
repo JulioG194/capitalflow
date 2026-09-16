@@ -67,7 +67,7 @@ transactions, or the "invest" flow (future specs).
 - [x] **AC21**: Given upstream ticks for a subscribed symbol arrive faster than one per second, when the service fans them out, then a given client receives at most one `quote:update` event per symbol per rolling 1-second window, using the most recent price within that window.
 - [x] **AC22**: Given no new upstream tick arrives for a subscribed symbol within 5 seconds of the last update emitted to a client, when 5 seconds elapse, then the service emits a heartbeat `quote:update` (last known cached price, `stale: true` if the Redis TTL has since expired, fresh `timestamp`) so the client can distinguish "no new trade" from "feed stalled."
 - [x] **AC23**: Given any `quote:update` payload delivered over the socket, when inspected, then it includes `delayed: true` and `delayMinutes: 15`, and `price`/`change`/`changePercent` are transmitted as strings, never as JS `number`.
-- [ ] **AC24**: Given the `/app/market` page is rendered, when a user views it, then a visible, persistent label states the data is delayed by 15 minutes and provided for educational/simulated purposes, and the platform-wide "Modo Simulador" badge (per CLAUDE.md) is present.
+- [ ] **AC24**: Given the `/app/market` page is rendered, when a user views it, then a visible, persistent label states the data is delayed by 15 minutes and provided for educational/simulated purposes, and the platform-wide "Simulator mode" badge (per CLAUDE.md) is present.
 
 ### Frontend `/app/market` page
 - [ ] **AC25**: Given an authenticated user navigates to `/app/market`, when the page loads, then a Server Component shell renders the static structure (headings, section containers, the AC24 disclaimer and badge) without embedding any live price values, and no client-side JavaScript is required to see that static structure (testable via `curl`/no-JS check, structure only — not live data).
@@ -207,7 +207,7 @@ resolution). No Prisma migration is required for this spec.
 - Price-alert notifications or thresholds.
 - A monitoring/admin dashboard for market-stream beyond structured logs (no Grafana/metrics UI is built by this spec).
 - Native/mobile clients — web only.
-- Non-`es` locale copy for this page (per spec 001's precedent).
+- Non-`en` locale copy for this page (per spec 001's precedent).
 - A REST snapshot endpoint on market-stream — all data delivery is via Socket.io (see section 4).
 
 ## 7. Implementation Notes

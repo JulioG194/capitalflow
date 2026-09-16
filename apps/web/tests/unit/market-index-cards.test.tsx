@@ -63,7 +63,7 @@ describe("MarketIndexCards", () => {
 
     render(<MarketIndexCards />);
 
-    expect(screen.getByText(/512,34/)).toBeInTheDocument();
+    expect(screen.getByText("$512.34")).toBeInTheDocument();
     expect(screen.getByText("-0.42%")).toBeInTheDocument();
   });
 });

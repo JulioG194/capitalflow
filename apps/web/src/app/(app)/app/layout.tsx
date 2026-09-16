@@ -19,7 +19,7 @@ import { AppNav } from "@/components/app/AppNav";
  *
  * Mounts the single app-wide `<AuthProvider>` here (CLAUDE.md: one
  * instance, not re-implemented per page) and renders the persistent
- * authenticated nav (Modo Simulador badge + logout, CLAUDE.md hard rule).
+ * authenticated nav (Simulator mode badge + logout, CLAUDE.md hard rule).
  */
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   return (

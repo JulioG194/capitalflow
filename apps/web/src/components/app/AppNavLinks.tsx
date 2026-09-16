@@ -52,7 +52,7 @@ export function AppNavLinks() {
           aria-controls="app-mobile-nav-panel"
           className="inline-flex items-center justify-center rounded-card p-2 text-ink"
         >
-          <span className="sr-only">{isOpen ? "Cerrar menú" : "Abrir menú"}</span>
+          <span className="sr-only">{isOpen ? "Close menu" : "Open menu"}</span>
           {isOpen ? (
             <X aria-hidden="true" size={24} />
           ) : (

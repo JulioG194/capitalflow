@@ -4,7 +4,7 @@
  * return the calculator below shows is a promise or guarantee. Server
  * Component — pure static copy with no live values, so it renders in the
  * initial HTML with no client-side JavaScript required, mirroring
- * `PortfolioDisclaimer`. The platform-wide "Modo Simulador" badge is
+ * `PortfolioDisclaimer`. The platform-wide "Simulator mode" badge is
  * rendered separately and unconditionally by `<AppNav>` in the shared
  * `(app)/app/layout.tsx` — this note is this page's own addition on top of
  * that badge, not a replacement for it.
@@ -15,9 +15,9 @@ export function InvestDisclaimer() {
       role="note"
       className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
     >
-      Esta sección es 100% simulada: ninguna inversión que realices aquí
-      mueve dinero real, y ningún resultado o estimación mostrada es una
-      ganancia garantizada.
+      This section is 100% simulated: none of the investments you place here
+      move real money, and no result or estimate shown is a guaranteed
+      return.
     </p>
   );
 }

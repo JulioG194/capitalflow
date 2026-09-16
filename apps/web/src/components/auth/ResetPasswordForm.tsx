@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { resetPasswordSchema, type ResetPasswordInput } from "@capitalflow/shared-types";
 import { resetPasswordRequest } from "@/lib/auth/auth-client";
-import { translateFieldError } from "@/lib/auth/error-messages";
 import { AuthFormError } from "@/components/auth/AuthFormError";
 import {
   authFieldErrorClass,
@@ -17,7 +16,7 @@ import {
 
 // AC23: the API deliberately doesn't reveal whether a token was invalid or
 // expired — the UI mirrors that with a single fixed message for any failure.
-const INVALID_TOKEN_ERROR = "El enlace no es válido o ha expirado. Solicita uno nuevo.";
+const INVALID_TOKEN_ERROR = "This link is invalid or has expired. Request a new one.";
 
 type ResetPasswordFormProps = {
   /** Read server-side from `?token=` by the page (spec 002 section 4). */
@@ -52,7 +51,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       <p className="rounded-card border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {INVALID_TOKEN_ERROR}{" "}
         <Link href="/forgot-password" className="font-medium underline">
-          Solicita un enlace nuevo
+          Request a new link
         </Link>
         .
       </p>
@@ -62,9 +61,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   if (succeeded) {
     return (
       <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-        Tu contraseña fue actualizada.{" "}
+        Your password was updated.{" "}
         <Link href="/login" className="font-medium underline">
-          Inicia sesión
+          Log in
         </Link>
         .
       </p>
@@ -78,7 +77,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="newPassword" className={authLabelClass}>
-          Nueva contraseña
+          New password
         </label>
         <input
           id="newPassword"
@@ -91,17 +90,17 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         />
         {errors.newPassword ? (
           <p id="newPassword-error" className={authFieldErrorClass}>
-            {translateFieldError(errors.newPassword.message)}
+            {errors.newPassword.message}
           </p>
         ) : (
           <p id="newPassword-hint" className="text-xs text-ink-muted">
-            Mínimo 10 caracteres, con al menos una letra y un número.
+            At least 10 characters, including one letter and one number.
           </p>
         )}
       </div>
 
       <button type="submit" disabled={isSubmitting} className={authSubmitButtonClass}>
-        {isSubmitting ? "Actualizando..." : "Actualizar contraseña"}
+        {isSubmitting ? "Updating..." : "Update password"}
       </button>
     </form>
   );

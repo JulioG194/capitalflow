@@ -13,7 +13,7 @@ export function buildOrganizationJsonLd() {
     url: SITE_URL,
     logo: LOGO_URL,
     description:
-      "CapitalFlow es un simulador de inversiones con fines educativos.",
+      "CapitalFlow is an educational investment simulator.",
   };
 }
 

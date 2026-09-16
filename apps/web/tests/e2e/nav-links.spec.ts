@@ -15,9 +15,9 @@ test.describe("Top nav structure and links (AC24)", () => {
     await expect(page).toHaveURL(/\/$/);
 
     const marketingLinks: Array<[string, string]> = [
-      ["Cómo funciona", "/how-it-works"],
-      ["Precios", "/pricing"],
-      ["Nosotros", "/about"],
+      ["How it works", "/how-it-works"],
+      ["Pricing", "/pricing"],
+      ["About", "/about"],
     ];
 
     for (const [label, path] of marketingLinks) {
@@ -28,16 +28,16 @@ test.describe("Top nav structure and links (AC24)", () => {
     }
   });
 
-  test("Iniciar sesión and Registrarse point to /login and /register", async ({
+  test("Log in and Sign up point to /login and /register", async ({
     page,
   }) => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("link", { name: "Iniciar sesión" }).first(),
+      page.getByRole("link", { name: "Log in" }).first(),
     ).toHaveAttribute("href", "/login");
 
-    const registerLinks = page.getByRole("link", { name: "Registrarse" });
+    const registerLinks = page.getByRole("link", { name: "Sign up" });
     await expect(registerLinks.first()).toHaveAttribute("href", "/register");
   });
 
@@ -50,12 +50,12 @@ test.describe("Top nav structure and links (AC24)", () => {
     }
   });
 
-  test("home → Registrarse lands on /register (even if a stub, per spec)", async ({
+  test("home → Sign up lands on /register (even if a stub, per spec)", async ({
     page,
   }) => {
     await page.goto("/");
     await page
-      .getByRole("link", { name: "Registrarse gratis" })
+      .getByRole("link", { name: "Sign up free" })
       .first()
       .click();
     await expect(page).toHaveURL(/\/register$/);

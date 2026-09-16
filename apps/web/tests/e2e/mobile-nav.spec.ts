@@ -9,8 +9,8 @@ test.describe("Mobile nav hamburger menu (AC25)", () => {
     await page.goto("/");
 
     // Located by the stable aria-controls relationship rather than its
-    // accessible name, since the name itself toggles between "Abrir menú"
-    // and "Cerrar menú".
+    // accessible name, since the name itself toggles between "Open menu"
+    // and "Close menu".
     const toggle = page.locator('button[aria-controls="mobile-nav-panel"]');
     await expect(toggle).toBeVisible();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -20,9 +20,9 @@ test.describe("Mobile nav hamburger menu (AC25)", () => {
 
     const panel = page.locator("#mobile-nav-panel");
     await expect(panel).toBeVisible();
-    await expect(panel.getByRole("link", { name: "Cómo funciona" })).toBeVisible();
+    await expect(panel.getByRole("link", { name: "How it works" })).toBeVisible();
     await expect(
-      panel.getByRole("link", { name: "Registrarse" }),
+      panel.getByRole("link", { name: "Sign up" }),
     ).toHaveAttribute("href", "/register");
 
     await toggle.click();
@@ -41,7 +41,7 @@ test.describe("Mobile nav hamburger menu (AC25)", () => {
     await page.keyboard.press("Enter");
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-    // Tab from the (now "Cerrar menú") toggle into the panel's first link.
+    // Tab from the (now "Close menu") toggle into the panel's first link.
     await page.keyboard.press("Tab");
     const firstPanelLink = page
       .locator("#mobile-nav-panel")

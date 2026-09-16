@@ -13,7 +13,7 @@ export function MarketingNav() {
   return (
     <header className="relative border-b border-gray-100 bg-white">
       <nav
-        aria-label="Principal"
+        aria-label="Primary"
         className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6"
       >
         <Link
@@ -22,7 +22,7 @@ export function MarketingNav() {
         >
           <Image
             src="/logo.svg"
-            alt={`Logotipo de ${SITE_NAME}`}
+            alt={`${SITE_NAME} logo`}
             width={32}
             height={32}
             priority
@@ -53,9 +53,9 @@ export function MarketingNav() {
             prefetch={false}
             className="text-sm font-medium text-ink hover:text-brand-600"
           >
-            Iniciar sesión
+            Log in
           </Link>
-          <CTAButton href="/register">Registrarse</CTAButton>
+          <CTAButton href="/register">Sign up</CTAButton>
         </div>
 
         <MobileNavToggle links={NAV_LINKS} />

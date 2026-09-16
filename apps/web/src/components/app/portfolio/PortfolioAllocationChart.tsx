@@ -76,7 +76,7 @@ export function PortfolioAllocationChart() {
     return (
       <PortfolioSkeleton
         className="h-40 w-40 rounded-full"
-        label="Cargando distribución de la cartera"
+        label="Loading portfolio allocation"
       />
     );
   }
@@ -84,7 +84,7 @@ export function PortfolioAllocationChart() {
   if (state.status === "error") {
     return (
       <PortfolioErrorState
-        message="No pudimos cargar la distribución de tu cartera."
+        message="We couldn't load your portfolio allocation."
         onRetry={load}
       />
     );
@@ -96,7 +96,7 @@ export function PortfolioAllocationChart() {
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
       <div
         role="img"
-        aria-label="Gráfico circular de distribución de la cartera por clase de activo"
+        aria-label="Pie chart of portfolio allocation by asset class"
         className="h-40 w-40 shrink-0 rounded-full"
         style={{ background: buildConicGradient(allocation) }}
       />

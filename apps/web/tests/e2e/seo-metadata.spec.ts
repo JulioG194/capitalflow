@@ -16,8 +16,8 @@ test.describe("SEO metadata per marketing page (AC9, AC10, AC15, AC23)", () => {
     }) => {
       await page.goto(route);
 
-      // AC23: lang="es" on <html>
-      await expect(page.locator("html")).toHaveAttribute("lang", "es");
+      // AC23: lang="en" on <html>
+      await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
       const title = await page.title();
       expect(title.length).toBeGreaterThan(0);

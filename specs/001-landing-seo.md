@@ -19,7 +19,7 @@ unauthenticated marketing pages; auth flows are in spec 002.
 - As a visitor, I want to understand exactly how the platform works so I can decide if it's for me.
 - As a visitor, I want to see pricing (or confirmation that it's free) before signing up.
 - As a visitor, I want to know who is behind the product.
-- As a visitor searching for "simulador de inversiones" on Google, I want to find CapitalFlow.
+- As a visitor searching for "investment simulator" on Google, I want to find CapitalFlow.
 - As a visitor, I want a clear CTA to sign up or log in.
 - As a visitor on mobile, I want the site to load fast and be fully usable.
 
@@ -30,7 +30,7 @@ unauthenticated marketing pages; auth flows are in spec 002.
 - [ ] **AC2**: `/how-it-works` explains the simulator flow in 3–5 numbered steps with icons or diagrams.
 - [ ] **AC3**: `/about` describes the mission and — critically — the educational/simulator nature of the product.
 - [ ] **AC4**: `/pricing` displays pricing tiers (even if the only tier is "Free — Simulator").
-- [ ] **AC5**: Every marketing page includes a visible disclaimer: "Simulador de inversiones con fines educativos. No se manejan fondos reales."
+- [ ] **AC5**: Every marketing page includes a visible disclaimer: "Educational investment simulator. No real funds are involved."
 - [ ] **AC6**: Every page has a footer with links to `/terms`, `/privacy`, the simulator disclaimer, and copyright.
 - [ ] **AC7**: `/terms` and `/privacy` exist as minimum-viable stubs linked from the footer.
 
@@ -54,10 +54,10 @@ unauthenticated marketing pages; auth flows are in spec 002.
 - [ ] **AC20**: Semantic HTML (`<main>`, `<nav>`, `<section>`, `<footer>`, proper heading hierarchy h1→h2→h3).
 - [ ] **AC21**: All interactive elements keyboard-navigable with visible focus states.
 - [ ] **AC22**: Color contrast meets WCAG AA on all text.
-- [ ] **AC23**: `lang="es"` set on `<html>`.
+- [ ] **AC23**: `lang="en"` set on `<html>`.
 
 ### Navigation
-- [ ] **AC24**: Top nav: Logo (→ `/`), How it works, Pricing, About, "Iniciar sesión" button (→ `/login`), "Registrarse" primary button (→ `/register`).
+- [ ] **AC24**: Top nav: Logo (→ `/`), How it works, Pricing, About, "Log in" button (→ `/login`), "Sign up" primary button (→ `/register`).
 - [ ] **AC25**: Mobile nav collapses into a hamburger menu, fully keyboard-accessible.
 
 ## 4. Technical Contracts
@@ -101,7 +101,7 @@ Each page exports `generateMetadata` (or static `metadata`) with:
 ### SEO files
 - `apps/web/src/app/sitemap.ts` — default export returns `MetadataRoute.Sitemap`
 - `apps/web/src/app/robots.ts` — default export returns `MetadataRoute.Robots`
-- `apps/web/src/app/layout.tsx` — sets `lang="es"`, base metadata, viewport
+- `apps/web/src/app/layout.tsx` — sets `lang="en"`, base metadata, viewport
 
 ### JSON-LD
 Homepage includes `<script type="application/ld+json">` with:
@@ -114,7 +114,7 @@ Homepage includes `<script type="application/ld+json">` with:
 - **Slow network**: above-the-fold text renders immediately; below-fold images lazy-loaded.
 - **Missing OG image**: fallback to `/og-default.png` at 1200×630.
 - **404 pages**: `app/not-found.tsx` with branded 404 and link to home.
-- **Locale**: default `es`. English is out of scope for v1.
+- **Locale**: default `en`. Additional languages are out of scope for v1.
 - **Dark mode**: follows `prefers-color-scheme` if design supports it; single theme otherwise.
 
 ## 6. Out of Scope
@@ -142,7 +142,7 @@ Homepage includes `<script type="application/ld+json">` with:
 ### Automated
 - **Unit tests (Vitest)**: snapshot tests for `<MarketingNav />` and `<MarketingFooter />`.
 - **E2E (Playwright)**:
-  - Home → click "Registrarse" → lands on `/register` (even if stub)
+  - Home → click "Sign up" → lands on `/register` (even if stub)
   - All marketing nav and footer links resolve without 404
   - `<title>` and meta description present on every page
   - sitemap.xml loads and contains all marketing URLs

@@ -26,7 +26,7 @@ consistent with the client-provided design template.
 - Forms: `react-hook-form` + zod resolver. Zod schemas reused from `@capitalflow/shared-types` — do not redefine schemas that already exist.
 - Real-time market data: Socket.io client connects to `apps/market-stream`. Subscribe only to symbols currently visible on screen; unsubscribe on unmount.
 - Money display: format via a shared `formatMoney` util. Never parse strings as `number` and re-stringify — treat monetary strings as opaque values until display.
-- "Modo Simulador" badge is visible in the top nav of every authenticated page.
+- "Simulator mode" badge is visible in the top nav of every authenticated page.
 - Auth: access token stored in memory (React context), refresh token in httpOnly cookie set by API. Silent refresh on 401.
 
 ## Anti-patterns to avoid

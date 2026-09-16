@@ -46,10 +46,10 @@ describe("InvestForm", () => {
     render(<InvestForm />);
     await screen.findByText("$1,000.00");
 
-    const select = screen.getByLabelText("Símbolo") as HTMLSelectElement;
+    const select = screen.getByLabelText("Symbol") as HTMLSelectElement;
     const optionValues = Array.from(select.options).map((option) => option.value);
     expect(optionValues).toEqual(INVESTABLE_SYMBOLS);
-    expect(screen.getByLabelText("Monto a invertir")).toBeInTheDocument();
+    expect(screen.getByLabelText("Amount to invest")).toBeInTheDocument();
   });
 
   it("AC24: displays the fetched cashBalance via formatMoney", async () => {
@@ -60,30 +60,30 @@ describe("InvestForm", () => {
     expect(await screen.findByText("$5,000.00")).toBeInTheDocument();
   });
 
-  it("AC24: disables Invertir with a visible message when the amount exceeds the balance", async () => {
+  it("AC24: disables Invest with a visible message when the amount exceeds the balance", async () => {
     vi.mocked(getPortfolioSummary).mockResolvedValue(summary({ cashBalance: "100.00" }));
 
     render(<InvestForm />);
     await screen.findByText("$100.00");
 
-    fireEvent.change(screen.getByLabelText("Monto a invertir"), { target: { value: "150.00" } });
+    fireEvent.change(screen.getByLabelText("Amount to invest"), { target: { value: "150.00" } });
 
-    expect(screen.getByRole("alert")).toHaveTextContent("supera tu efectivo disponible");
-    expect(screen.getByRole("button", { name: "Invertir" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("exceeds your available cash");
+    expect(screen.getByRole("button", { name: "Invest" })).toBeDisabled();
   });
 
-  it("AC25: clicking Invertir with a valid symbol/amount opens the confirm modal", async () => {
+  it("AC25: clicking Invest with a valid symbol/amount opens the confirm modal", async () => {
     vi.mocked(getPortfolioSummary).mockResolvedValue(summary({ cashBalance: "1000.00" }));
 
     render(<InvestForm />);
     await screen.findByText("$1,000.00");
 
-    fireEvent.change(screen.getByLabelText("Monto a invertir"), { target: { value: "100.00" } });
-    expect(screen.getByRole("button", { name: "Invertir" })).not.toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Amount to invest"), { target: { value: "100.00" } });
+    expect(screen.getByRole("button", { name: "Invest" })).not.toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Invest" }));
 
-    expect(await screen.findByRole("dialog", { name: "Confirmar inversión" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Confirm investment" })).toBeInTheDocument();
   });
 
   it("AC27: a successful invest refetches the balance without a full page reload", async () => {
@@ -95,13 +95,13 @@ describe("InvestForm", () => {
     render(<InvestForm />);
     await screen.findByText("$1,000.00");
 
-    fireEvent.change(screen.getByLabelText("Monto a invertir"), { target: { value: "100.00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
-    await screen.findByRole("dialog", { name: "Confirmar inversión" });
+    fireEvent.change(screen.getByLabelText("Amount to invest"), { target: { value: "100.00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invest" }));
+    await screen.findByRole("dialog", { name: "Confirm investment" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
-    await screen.findByText("Inversión simulada realizada");
+    await screen.findByText("Simulated investment placed");
 
     await waitFor(
       () => {
@@ -127,22 +127,22 @@ describe("InvestForm", () => {
     render(<InvestForm />);
     await screen.findByText("$1,000.00");
 
-    fireEvent.change(screen.getByLabelText("Monto a invertir"), { target: { value: "100.00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
-    await screen.findByRole("dialog", { name: "Confirmar inversión" });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.change(screen.getByLabelText("Amount to invest"), { target: { value: "100.00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invest" }));
+    await screen.findByRole("dialog", { name: "Confirm investment" });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     // Close (simulating "navigate away") while the first call is still pending.
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     // Reopen for a new attempt — this must be a fresh component instance
     // firing a brand-new call, never resubmitting/reusing the first promise.
-    fireEvent.click(screen.getByRole("button", { name: "Invertir" }));
-    await screen.findByRole("dialog", { name: "Confirmar inversión" });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Invest" }));
+    await screen.findByRole("dialog", { name: "Confirm investment" });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
-    await screen.findByText("Inversión simulada realizada");
+    await screen.findByText("Simulated investment placed");
 
     const defaultSymbol = INVESTABLE_SYMBOLS[0];
     expect(investInPortfolio).toHaveBeenCalledTimes(2);

@@ -5,9 +5,9 @@ import { SITE_NAME } from "@/lib/site-config";
 export const revalidate = 86400;
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Privacidad",
+  title: "Privacy",
   description:
-    "Política de privacidad de CapitalFlow: qué datos recopilamos y cómo los usamos dentro de este simulador de inversiones educativo.",
+    "CapitalFlow privacy policy: what data we collect and how we use it inside this educational investment simulator.",
   path: "/privacy",
 });
 
@@ -15,35 +15,34 @@ export default function PrivacyPage() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-4xl font-bold tracking-tight text-ink">
-        Política de privacidad
+        Privacy policy
       </h1>
       <p className="mt-2 text-sm text-ink-muted">
-        Última actualización: versión inicial (documento en construcción).
+        Last updated: initial version (document in progress).
       </p>
 
       <div className="mt-8 flex flex-col gap-6 text-ink-muted">
         <p>
-          {SITE_NAME} recopila únicamente los datos necesarios para operar tu
-          cuenta simulada: datos de registro y el historial de tus
-          operaciones simuladas dentro de la plataforma.
+          {SITE_NAME} collects only the data needed to operate your
+          simulated account: registration details and the history of your
+          simulated trades on the platform.
         </p>
 
-        <h2 className="text-xl font-semibold text-ink">Qué no hacemos</h2>
+        <h2 className="text-xl font-semibold text-ink">What we do not do</h2>
         <p>
-          No solicitamos ni almacenamos datos bancarios ni de tarjetas de
-          pago, porque {SITE_NAME} nunca gestiona dinero real.
+          We do not request or store bank or payment-card data, because{" "}
+          {SITE_NAME} never handles real money.
         </p>
 
-        <h2 className="text-xl font-semibold text-ink">Datos de mercado</h2>
+        <h2 className="text-xl font-semibold text-ink">Market data</h2>
         <p>
-          Los precios de mercado que se muestran provienen de un proveedor de
-          datos externo y se usan únicamente para fines educativos dentro del
-          simulador.
+          Market prices shown come from an external data provider and are
+          used solely for educational purposes inside the simulator.
         </p>
 
         <p className="text-sm">
-          Este documento es un stub inicial y será ampliado en una versión
-          posterior del producto.
+          This document is an initial stub and will be expanded in a later
+          version of the product.
         </p>
       </div>
     </section>

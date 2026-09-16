@@ -7,35 +7,35 @@ import { SimulatorBadge } from "@/components/marketing/SimulatorBadge";
 export const revalidate = 86400;
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Precios",
+  title: "Pricing",
   description:
-    "CapitalFlow es gratuito: un simulador de inversiones educativo con un único plan, sin costos ni dinero real involucrado.",
+    "CapitalFlow is free: an educational investment simulator with a single plan, no fees, and no real money involved.",
   path: "/pricing",
 });
 
 const included = [
-  "Saldo simulado ilimitado para practicar",
-  "Datos de mercado reales con retraso de 15 minutos",
-  "Historial completo de tus operaciones simuladas",
-  "Seguimiento de la evolución de tu cartera",
+  "Unlimited simulated cash to practice with",
+  "Real market data with a 15-minute delay",
+  "Full history of your simulated trades",
+  "Portfolio performance tracking",
 ];
 
 export default function PricingPage() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <h1 className="text-4xl font-bold tracking-tight text-ink">Precios</h1>
+      <h1 className="text-4xl font-bold tracking-tight text-ink">Pricing</h1>
       <p className="mt-4 text-lg text-ink-muted">
-        CapitalFlow es y será siempre un simulador educativo gratuito. No hay
-        pagos, suscripciones ni dinero real involucrado.
+        CapitalFlow is and will always be a free educational simulator. There
+        are no payments, subscriptions, or real money involved.
       </p>
 
       <article className="mt-10 rounded-card border border-brand-200 bg-white p-8 shadow-sm">
         <h2 className="text-2xl font-semibold text-ink">
-          Gratis — Simulador
+          Free — Simulator
         </h2>
         <p className="mt-2 text-3xl font-bold text-brand-600">
           $0
-          <span className="text-base font-normal text-ink-muted"> / siempre</span>
+          <span className="text-base font-normal text-ink-muted"> / forever</span>
         </p>
 
         <ul className="mt-6 flex flex-col gap-3">
@@ -48,7 +48,7 @@ export default function PricingPage() {
         </ul>
 
         <div className="mt-8">
-          <CTAButton href="/register">Registrarse gratis</CTAButton>
+          <CTAButton href="/register">Sign up free</CTAButton>
         </div>
       </article>
 

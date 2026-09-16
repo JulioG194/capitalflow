@@ -34,15 +34,15 @@ async function registerAndLogin(page: Page, label: string): Promise<void> {
   const password = "Password123";
 
   await page.goto("/register");
-  await page.getByLabel("Nombre").fill("Ada Lovelace");
-  await page.getByLabel("Correo electrónico").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.getByRole("button", { name: "Crear cuenta" }).click();
+  await page.getByLabel("Name").fill("Ada Lovelace");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/login\?registered=1$/);
 
-  await page.getByLabel("Correo electrónico").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/app\/profile$/);
 }
 
@@ -89,12 +89,12 @@ test.describe.serial("authenticated /app/invest", () => {
 
   test("calculator never calls the invest endpoint (AC18-AC22)", async () => {
     await page.goto("/app/invest");
-    await expect(page.getByRole("heading", { name: "Invertir" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Invest" })).toBeVisible();
 
-    await page.getByLabel("Monto simulado").fill("1000");
+    await page.getByLabel("Simulated amount").fill("1000");
     await page.getByLabel("Plan").selectOption("agresivo");
-    await page.getByLabel("Plazo (meses)").fill("24");
-    await expect(page.getByText(/Estimación ilustrativa, no garantizada/)).toBeVisible();
+    await page.getByLabel("Term (months)").fill("24");
+    await expect(page.getByText(/Illustrative estimate, not guaranteed/)).toBeVisible();
 
     expect(investCalls).toBe(0);
   });
@@ -103,17 +103,17 @@ test.describe.serial("authenticated /app/invest", () => {
     await page.goto("/app/invest");
     await expect(page.getByText("$10,000.00").first()).toBeVisible();
 
-    await page.getByLabel("Símbolo").selectOption(INVEST_SYMBOL);
-    await page.getByLabel("Monto a invertir").fill("100.00");
-    await page.getByRole("button", { name: "Invertir" }).click();
+    await page.getByLabel("Symbol").selectOption(INVEST_SYMBOL);
+    await page.getByLabel("Amount to invest").fill("100.00");
+    await page.getByRole("button", { name: "Invest" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Confirmar inversión" });
+    const dialog = page.getByRole("dialog", { name: "Confirm investment" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(INVEST_SYMBOL)).toBeVisible();
     await expect(dialog.getByText("$100.00")).toBeVisible();
 
-    await dialog.getByRole("button", { name: "Confirmar" }).click();
-    await expect(dialog.getByText("Inversión simulada realizada")).toBeVisible();
+    await dialog.getByRole("button", { name: "Confirm" }).click();
+    await expect(dialog.getByText("Simulated investment placed")).toBeVisible();
     await expect(dialog).not.toBeVisible();
 
     // Balance reflects the new investment via a client-side refetch, no page reload.
@@ -128,16 +128,16 @@ test.describe.serial("authenticated /app/invest", () => {
     };
 
     await page.goto("/app/invest");
-    await page.getByLabel("Símbolo").selectOption(INVEST_SYMBOL);
-    await page.getByLabel("Monto a invertir").fill("150.00");
-    await page.getByRole("button", { name: "Invertir" }).click();
+    await page.getByLabel("Symbol").selectOption(INVEST_SYMBOL);
+    await page.getByLabel("Amount to invest").fill("150.00");
+    await page.getByRole("button", { name: "Invest" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Confirmar inversión" });
-    await dialog.getByRole("button", { name: "Confirmar" }).click();
+    const dialog = page.getByRole("dialog", { name: "Confirm investment" });
+    await dialog.getByRole("button", { name: "Confirm" }).click();
 
-    await expect(dialog.getByRole("alert")).toContainText("No tienes suficiente efectivo simulado");
+    await expect(dialog.getByRole("alert")).toContainText("You don't have enough simulated cash");
     await expect(dialog).toBeVisible();
-    await expect(page.getByLabel("Monto a invertir")).toHaveValue("150.00");
+    await expect(page.getByLabel("Amount to invest")).toHaveValue("150.00");
 
     mockResponse = null;
   });
@@ -149,14 +149,14 @@ test.describe.serial("authenticated /app/invest", () => {
     };
 
     await page.goto("/app/invest");
-    await page.getByLabel("Símbolo").selectOption(INVEST_SYMBOL);
-    await page.getByLabel("Monto a invertir").fill("50.00");
-    await page.getByRole("button", { name: "Invertir" }).click();
+    await page.getByLabel("Symbol").selectOption(INVEST_SYMBOL);
+    await page.getByLabel("Amount to invest").fill("50.00");
+    await page.getByRole("button", { name: "Invest" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Confirmar inversión" });
-    await dialog.getByRole("button", { name: "Confirmar" }).click();
+    const dialog = page.getByRole("dialog", { name: "Confirm investment" });
+    await dialog.getByRole("button", { name: "Confirm" }).click();
 
-    await expect(dialog.getByRole("alert")).toContainText("Inténtalo de nuevo");
+    await expect(dialog.getByRole("alert")).toContainText("Please try again");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(INVEST_SYMBOL)).toBeVisible();
     await expect(dialog.getByText("$50.00")).toBeVisible();
@@ -180,16 +180,16 @@ test.describe.serial("authenticated /app/invest", () => {
     };
 
     await page.goto("/app/invest");
-    await page.getByLabel("Símbolo").selectOption(INVEST_SYMBOL);
-    await page.getByLabel("Monto a invertir").fill("25.00");
-    await page.getByRole("button", { name: "Invertir" }).click();
+    await page.getByLabel("Symbol").selectOption(INVEST_SYMBOL);
+    await page.getByLabel("Amount to invest").fill("25.00");
+    await page.getByRole("button", { name: "Invest" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Confirmar inversión" });
-    await dialog.getByRole("button", { name: "Confirmar" }).click();
+    const dialog = page.getByRole("dialog", { name: "Confirm investment" });
+    await dialog.getByRole("button", { name: "Confirm" }).click();
 
     const alert = dialog.getByRole("alert");
-    await expect(alert).toContainText("demasiados intentos");
-    await expect(alert).toContainText("37 segundos");
+    await expect(alert).toContainText("Too many investment attempts");
+    await expect(alert).toContainText("37 seconds");
 
     mockResponse = null;
   });

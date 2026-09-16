@@ -7,8 +7,8 @@ describe("MarketDelayDisclaimer", () => {
     render(<MarketDelayDisclaimer />);
     const note = screen.getByRole("note");
     expect(note).toHaveTextContent("15");
-    expect(note).toHaveTextContent(/minutos/);
-    expect(note).toHaveTextContent(/educativos/);
-    expect(note).toHaveTextContent(/simulaci/);
+    expect(note).toHaveTextContent(/minutes/);
+    expect(note).toHaveTextContent(/educational/);
+    expect(note).toHaveTextContent(/simulat/);
   });
 });

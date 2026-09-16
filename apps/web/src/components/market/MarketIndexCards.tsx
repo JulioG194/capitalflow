@@ -45,7 +45,7 @@ export function MarketIndexCards() {
             ) : (
               <MarketSkeletonBlock
                 className="mt-2 h-14"
-                aria-label={`Cargando ${label}`}
+                aria-label={`Loading ${label}`}
               />
             )}
           </article>

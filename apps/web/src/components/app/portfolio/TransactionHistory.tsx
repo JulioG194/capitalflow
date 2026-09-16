@@ -14,7 +14,7 @@ type State =
 
 const PAGE_SIZE = 20;
 
-const dateFormatter = new Intl.DateTimeFormat("es-ES", {
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
@@ -42,14 +42,14 @@ export function TransactionHistory() {
 
   if (state.status === "loading") {
     return (
-      <PortfolioSkeleton className="h-48 rounded-card" label="Cargando historial de transacciones" />
+      <PortfolioSkeleton className="h-48 rounded-card" label="Loading transaction history" />
     );
   }
 
   if (state.status === "error") {
     return (
       <PortfolioErrorState
-        message="No pudimos cargar tu historial de transacciones."
+        message="We couldn't load your transaction history."
         onRetry={() => load(page)}
       />
     );
@@ -60,7 +60,7 @@ export function TransactionHistory() {
   if (items.length === 0) {
     return (
       <p className="rounded-card border border-gray-100 bg-white px-4 py-6 text-sm text-ink-muted">
-        Todavía no tienes transacciones.
+        You don&apos;t have any transactions yet.
       </p>
     );
   }
@@ -72,22 +72,22 @@ export function TransactionHistory() {
           <thead className="border-b border-gray-100 text-ink-muted">
             <tr>
               <th scope="col" className="px-4 py-3">
-                Tipo
+                Type
               </th>
               <th scope="col" className="px-4 py-3">
-                Símbolo
+                Symbol
               </th>
               <th scope="col" className="px-4 py-3">
-                Cantidad
+                Quantity
               </th>
               <th scope="col" className="px-4 py-3">
-                Monto
+                Amount
               </th>
               <th scope="col" className="px-4 py-3">
-                Estado
+                Status
               </th>
               <th scope="col" className="px-4 py-3">
-                Fecha
+                Date
               </th>
             </tr>
           </thead>
@@ -110,7 +110,7 @@ export function TransactionHistory() {
 
       <div className="flex items-center justify-between text-sm text-ink-muted">
         <span>
-          Página {page} de {totalPages || 1}
+          Page {page} of {totalPages || 1}
         </span>
         <div className="flex gap-2">
           <button
@@ -119,7 +119,7 @@ export function TransactionHistory() {
             disabled={page <= 1}
             className="rounded-card border border-gray-200 px-3 py-1.5 font-medium text-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Anterior
+            Previous
           </button>
           <button
             type="button"
@@ -127,7 +127,7 @@ export function TransactionHistory() {
             disabled={page >= totalPages}
             className="rounded-card border border-gray-200 px-3 py-1.5 font-medium text-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Siguiente
+            Next
           </button>
         </div>
       </div>

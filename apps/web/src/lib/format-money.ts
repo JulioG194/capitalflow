@@ -12,7 +12,7 @@ export function formatMoney(value: string, currency = "USD"): string {
   if (!Number.isFinite(numeric)) {
     return value;
   }
-  return new Intl.NumberFormat("es-ES", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 2,

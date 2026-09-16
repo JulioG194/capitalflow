@@ -6,9 +6,9 @@ import { PLAN_ANNUAL_RATE_PERCENT, type InvestmentPlan } from "@capitalflow/shar
 const PLAN_OPTIONS: InvestmentPlan[] = ["conservador", "moderado", "agresivo"];
 
 const PLAN_LABELS: Record<InvestmentPlan, string> = {
-  conservador: "Conservador",
-  moderado: "Moderado",
-  agresivo: "Agresivo",
+  conservador: "Conservative",
+  moderado: "Moderate",
+  agresivo: "Aggressive",
 };
 
 const MAX_MONTHS = 60;
@@ -54,7 +54,7 @@ function computeResult(
   const months = Number(monthsInput);
 
   if (amountInput.trim() === "" || !Number.isFinite(amount) || amount <= 0) {
-    return { error: "Ingresa un monto simulado mayor a $0." };
+    return { error: "Enter a simulated amount greater than $0." };
   }
   if (
     monthsInput.trim() === "" ||
@@ -62,7 +62,7 @@ function computeResult(
     months <= 0 ||
     months > MAX_MONTHS
   ) {
-    return { error: `Ingresa un plazo entero entre 1 y ${MAX_MONTHS} meses.` };
+    return { error: `Enter a whole number of months between 1 and ${MAX_MONTHS}.` };
   }
 
   const monthlyRate = PLAN_ANNUAL_RATE_PERCENT[plan] / 100 / 12;
@@ -94,7 +94,7 @@ export function RendimientoCalculator() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <label htmlFor={amountId} className="text-sm font-medium text-ink">
-            Monto simulado
+            Simulated amount
           </label>
           <input
             id={amountId}
@@ -121,7 +121,7 @@ export function RendimientoCalculator() {
           >
             {PLAN_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {PLAN_LABELS[option]} — {PLAN_ANNUAL_RATE_PERCENT[option]}% anual estimado
+                {PLAN_LABELS[option]} — {PLAN_ANNUAL_RATE_PERCENT[option]}% estimated annual
               </option>
             ))}
           </select>
@@ -129,7 +129,7 @@ export function RendimientoCalculator() {
 
         <div className="flex flex-col gap-1">
           <label htmlFor={monthsId} className="text-sm font-medium text-ink">
-            Plazo (meses)
+            Term (months)
           </label>
           <input
             id={monthsId}
@@ -151,13 +151,13 @@ export function RendimientoCalculator() {
         </p>
       ) : (
         <div className="flex flex-col gap-1 rounded-card bg-gray-50 p-4">
-          <p className="text-sm text-ink-muted">Rendimiento estimado</p>
+          <p className="text-sm text-ink-muted">Estimated return</p>
           <p className="text-xl font-bold text-ink">{formatEstimate(outcome.result.estimatedReturn)}</p>
           <p className="text-sm text-ink-muted">
-            Total estimado: <span className="font-medium text-ink">{formatEstimate(outcome.result.estimatedTotal)}</span>
+            Estimated total: <span className="font-medium text-ink">{formatEstimate(outcome.result.estimatedTotal)}</span>
           </p>
           <p className="text-xs font-medium text-amber-700">
-            Estimación ilustrativa, no garantizada. No representa una promesa de ganancia.
+            Illustrative estimate, not guaranteed. This is not a promise of profit.
           </p>
         </div>
       )}

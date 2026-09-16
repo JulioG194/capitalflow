@@ -41,11 +41,11 @@ describe("PortfolioAllocationChart", () => {
     render(<PortfolioAllocationChart />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos cargar la distribución de tu cartera.",
+      "We couldn't load your portfolio allocation.",
     );
 
     vi.mocked(getPortfolioSummary).mockResolvedValueOnce(summary());
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => {
       expect(getPortfolioSummary).toHaveBeenCalledTimes(2);
@@ -65,8 +65,8 @@ describe("PortfolioAllocationChart", () => {
 
     render(<PortfolioAllocationChart />);
 
-    expect(await screen.findByText("Acciones — 60.00%")).toBeInTheDocument();
-    expect(screen.getByText("Efectivo — 40.00%")).toBeInTheDocument();
+    expect(await screen.findByText("Equities — 60.00%")).toBeInTheDocument();
+    expect(screen.getByText("Cash — 40.00%")).toBeInTheDocument();
     expect(screen.getByRole("img")).toBeInTheDocument();
   });
 });

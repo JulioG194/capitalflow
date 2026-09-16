@@ -21,7 +21,7 @@ export function PortfolioErrorState({ message, onRetry }: PortfolioErrorStatePro
         onClick={onRetry}
         className="rounded-card border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
       >
-        Reintentar
+        Retry
       </button>
     </div>
   );

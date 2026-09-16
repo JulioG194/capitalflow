@@ -17,16 +17,16 @@ export const SITE_URL =
   "https://capitalflow.example";
 
 export const SITE_DESCRIPTION =
-  "Simulador de inversiones con fines educativos. Practica decisiones de inversión con datos de mercado reales, sin arriesgar dinero real.";
+  "Educational investment simulator. Practice investment decisions with real market data, without risking real money.";
 
 export const DISCLAIMER_TEXT =
-  "Simulador de inversiones con fines educativos. No se manejan fondos reales.";
+  "Educational investment simulator. No real funds are involved.";
 
 export const DEFAULT_OG_IMAGE = {
   url: `${SITE_URL}/og-default.png`,
   width: 1200,
   height: 630,
-  alt: `${SITE_NAME} — simulador de inversiones educativo`,
+  alt: `${SITE_NAME} — educational investment simulator`,
 };
 
 export const LOGO_URL = `${SITE_URL}/logo.svg`;
@@ -37,22 +37,22 @@ export type NavLink = {
 };
 
 export const NAV_LINKS: NavLink[] = [
-  { href: "/how-it-works", label: "Cómo funciona" },
-  { href: "/pricing", label: "Precios" },
-  { href: "/about", label: "Nosotros" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
 ];
 
 /** Authenticated platform nav (`/app/*`). Distinct from marketing `NAV_LINKS`. */
 export const APP_NAV_LINKS: NavLink[] = [
-  { href: "/app/market", label: "Mercado" },
-  { href: "/app/portfolio", label: "Mi cartera" },
-  { href: "/app/invest", label: "Invertir" },
-  { href: "/app/profile", label: "Perfil" },
+  { href: "/app/market", label: "Market" },
+  { href: "/app/portfolio", label: "My portfolio" },
+  { href: "/app/invest", label: "Invest" },
+  { href: "/app/profile", label: "Profile" },
 ];
 
 export const LEGAL_LINKS: NavLink[] = [
-  { href: "/terms", label: "Términos de servicio" },
-  { href: "/privacy", label: "Privacidad" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 export const MARKETING_ROUTES = [

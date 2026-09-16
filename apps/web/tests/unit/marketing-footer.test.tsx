@@ -8,17 +8,17 @@ describe("MarketingFooter", () => {
 
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Términos de servicio" }),
+      screen.getByRole("link", { name: "Terms of Service" }),
     ).toHaveAttribute("href", "/terms");
     expect(
-      screen.getByRole("link", { name: "Privacidad" }),
+      screen.getByRole("link", { name: "Privacy" }),
     ).toHaveAttribute("href", "/privacy");
     expect(
       screen.getByText(
-        "Simulador de inversiones con fines educativos. No se manejan fondos reales.",
+        "Educational investment simulator. No real funds are involved.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/CapitalFlow\. Todos los derechos reservados\./)).toBeInTheDocument();
+    expect(screen.getByText(/CapitalFlow\. All rights reserved\./)).toBeInTheDocument();
   });
 
   it("matches snapshot", () => {

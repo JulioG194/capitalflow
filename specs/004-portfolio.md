@@ -67,7 +67,7 @@ which will be the first feature to actually write `Holding` rows and
 - [x] **AC21**: Given a `page` value beyond the last available page (e.g. `page=999` when only 1 page exists), when called, then the response is `200` with `items = []` and the correct `total`/`totalPages`, not `404`.
 
 ### Frontend `/app/portfolio`
-- [x] **AC22**: Given an authenticated user navigates to `/app/portfolio`, when the page's static shell renders, then a Server Component renders headings, section containers, and the platform-wide "Modo Simulador" badge plus a visible note that all figures are simulated, without embedding any live financial value.
+- [x] **AC22**: Given an authenticated user navigates to `/app/portfolio`, when the page's static shell renders, then a Server Component renders headings, section containers, and the platform-wide "Simulator mode" badge plus a visible note that all figures are simulated, without embedding any live financial value.
 - [x] **AC22a**: Given the shell in AC22, when its data sections are inspected, then each one (summary, allocation chart, holdings table, transaction history) is a separate `"use client"` component responsible for fetching its own data, and each carries a one-line comment explaining why (required because the access token exists only in-memory in the browser per spec 002 AC41, so a Server Component cannot attach it), per CLAUDE.md's `"use client"` convention.
 - [x] **AC23**: Given a data-fetching client component has not yet received a response, when rendered, then it shows an explicit loading/skeleton state, never a blank section or a fabricated `$0.00`/`0%` presented as real data.
 - [x] **AC24**: Given a data-fetching client component's request fails (network error or non-2xx response), when the failure is handled, then it shows a visible error state with a retry action, not a silently blank section.
@@ -277,7 +277,7 @@ New Prisma models (migration name: `add_portfolio_holdings_transactions`):
 - `<PortfolioAllocationChart />` — `"use client"` (fetches `GET /portfolio`, renders the `allocation` slice as a pie chart) — (AC26).
 - `<HoldingsTable />` — `"use client"` (fetches `GET /portfolio/holdings`) — active investments table (AC27).
 - `<TransactionHistory />` — `"use client"` (fetches `GET /portfolio/transactions`, holds pagination state) — transaction history table (AC28, AC29).
-- Reuses the platform's persistent "Modo Simulador" badge component (per CLAUDE.md) in the Server Component shell.
+- Reuses the platform's persistent "Simulator mode" badge component (per CLAUDE.md) in the Server Component shell.
 
 ## 5. Edge Cases & Errors
 
@@ -307,7 +307,7 @@ New Prisma models (migration name: `add_portfolio_holdings_transactions`):
 - Admin/ops visibility into other users' portfolios.
 - Notifications or alerts on portfolio value changes.
 - Native/mobile clients — web only.
-- Non-`es` locale copy for this page (per spec 001's precedent).
+- Non-`en` locale copy for this page (per spec 001's precedent).
 - Negative/overdrawn cash balances — not reachable in this spec since no spend path exists yet (all endpoints are read-only), but the future "invest"/buy-sell spec must explicitly define whether a buy can ever push `cashBalance` below `"0.00"` and, if not, how it's rejected.
 
 ## 7. Implementation Notes

@@ -28,7 +28,7 @@ Build Next.js App Router marketing pages that are:
 - Use `<Image>` from `next/image` for ALL images with explicit `width`, `height`, `alt`.
 - Semantic HTML: `<main>`, `<section>`, `<article>`, `<nav>`, `<footer>`. No `<div>` soup.
 - Heading hierarchy is strict: one `<h1>` per page, then `<h2>`, `<h3>` without skipping.
-- Every marketing page includes the "Simulador educativo" disclaimer visibly.
+- Every marketing page includes the "Educational investment simulator" disclaimer visibly.
 - Never promise returns, profits, or guarantees in any copy.
 - Tailwind only for styling. Design tokens from `tailwind.config.ts`. No inline styles.
 - Internal links use Next.js `<Link>`, never plain `<a>`.

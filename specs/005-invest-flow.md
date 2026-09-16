@@ -7,7 +7,7 @@
 in-memory-only token storage shapes the client-fetch architecture), 003-market-realtime
 (the supported investable symbol set and the Redis price-cache contract this
 spec depends on), 004-portfolio (`PortfolioSummaryDto`, the `Holding`/`Transaction`
-Prisma models, `formatMoney`, and the "Modo Simulador" badge are all reused
+Prisma models, `formatMoney`, and the "Simulator mode" badge are all reused
 here rather than reinvented — this spec is the first to actually write
 `Holding` rows and `buy` `Transaction` rows, which spec 004 explicitly left
 for "a future invest spec")
@@ -61,7 +61,7 @@ flow.
 ### Frontend `/app/invest` — rendimiento calculator
 
 - [x] **AC18**: Given a user on `/app/invest` enters an `amount`, selects a `plan` (`conservador` | `moderado` | `agresivo`), and enters `months` (integer, 1–60) into the calculator, when any of the three inputs changes, then the calculator recomputes and displays `estimatedReturn` and `estimatedTotal` using the pinned formula in section 4, entirely client-side, with no network request issued as a result of the change.
-- [x] **AC19**: Given the calculator's displayed result, when rendered, then it is visibly labeled as an illustrative, non-guaranteed estimate (e.g. "Estimación ilustrativa, no garantizada") and is never presented as a promised or guaranteed return, consistent with CLAUDE.md's simulator-transparency rule.
+- [x] **AC19**: Given the calculator's displayed result, when rendered, then it is visibly labeled as an illustrative, non-guaranteed estimate (e.g. "Illustrative estimate, not guaranteed") and is never presented as a promised or guaranteed return, consistent with CLAUDE.md's simulator-transparency rule.
 - [x] **AC20**: Given the calculator's `amount` is empty, zero, or negative, or `months` is empty, zero, or greater than 60, when computed, then the calculator shows an inline validation message and displays no numeric result (never `NaN`, `Infinity`, or a fabricated `$0.00`).
 - [x] **AC21**: Given the calculator component, when its source is inspected, then it contains no call to `POST /portfolio/invest` or any other network request — it is fully decoupled from the confirm-investment flow described below.
 - [x] **AC22**: Given the calculator's plan selector, when rendered, then each of the three plans displays its pinned illustrative annual rate (e.g. "Moderado — 7% anual estimado") so the user can see which assumption produced the displayed estimate.
@@ -69,16 +69,16 @@ flow.
 ### Frontend `/app/invest` — investment form & confirm modal
 
 - [x] **AC23**: Given an authenticated user on `/app/invest`, when the page's investment form renders, then it presents a `symbol` selector constrained to the same supported investable symbol set as AC2 (an unsupported symbol cannot be selected through the UI) and an `amount` input.
-- [x] **AC24**: Given the investment form has fetched the user's current `cashBalance` via `GET /portfolio` on mount, when rendered, then the balance is displayed via `formatMoney`, and the "Invertir" button is disabled with a visible message whenever the entered `amount` exceeds the displayed balance — this is a UX guard only; AC5's server-side check remains the sole security boundary.
-- [x] **AC25**: Given a valid `symbol` and `amount` are entered and the user clicks "Invertir", when the click is handled, then a "Confirmar inversión" modal opens displaying the selected `symbol`, the `amount` formatted via `formatMoney`, and copy stating the investment is simulated and no real money moves.
-- [x] **AC26**: Given the confirm modal is open, when the user clicks "Confirmar", then the frontend calls `POST /portfolio/invest` with `{ symbol, amount }`, and the confirm button enters a disabled/loading state for the duration of the request, preventing a duplicate submission from a repeated click.
-- [x] **AC27**: Given `POST /portfolio/invest` responds `201`, when handled, then the modal displays a success state (e.g. "Inversión simulada realizada"), then closes, and the page's displayed portfolio data (cash balance and any on-page summary/holdings elements) updates via a client-side refetch — never via `window.location.reload()` or a full navigation.
+- [x] **AC24**: Given the investment form has fetched the user's current `cashBalance` via `GET /portfolio` on mount, when rendered, then the balance is displayed via `formatMoney`, and the "Invest" button is disabled with a visible message whenever the entered `amount` exceeds the displayed balance — this is a UX guard only; AC5's server-side check remains the sole security boundary.
+- [x] **AC25**: Given a valid `symbol` and `amount` are entered and the user clicks "Invest", when the click is handled, then a "Confirm investment" modal opens displaying the selected `symbol`, the `amount` formatted via `formatMoney`, and copy stating the investment is simulated and no real money moves.
+- [x] **AC26**: Given the confirm modal is open, when the user clicks "Confirm", then the frontend calls `POST /portfolio/invest` with `{ symbol, amount }`, and the confirm button enters a disabled/loading state for the duration of the request, preventing a duplicate submission from a repeated click.
+- [x] **AC27**: Given `POST /portfolio/invest` responds `201`, when handled, then the modal displays a success state (e.g. "Simulated investment placed"), then closes, and the page's displayed portfolio data (cash balance and any on-page summary/holdings elements) updates via a client-side refetch — never via `window.location.reload()` or a full navigation.
 - [x] **AC28**: Given `POST /portfolio/invest` responds `422` with `INSUFFICIENT_FUNDS`, when handled, then the modal remains open, displays a message indicating insufficient simulated funds, and does not clear the entered `amount`.
 - [x] **AC29**: Given `POST /portfolio/invest` responds `503` with `PRICE_UNAVAILABLE`, when handled, then the modal remains open and displays a retry-oriented error message without discarding the entered `symbol`/`amount`.
 - [x] **AC30**: Given `POST /portfolio/invest` responds `429`, when handled, then the modal displays a message indicating too many investment attempts and to wait before retrying, and surfaces (or derives a wait time from) the response's `Retry-After` value.
 - [x] **AC31**: Given the confirm modal has an in-flight `POST /portfolio/invest` request, when the user closes the modal or navigates away from `/app/invest` before the response arrives, then the already-sent request is left to complete server-side (it is not cancelled, and the server-side outcome — cash deducted, `Transaction`/`Holding` written or not, per AC1–AC11 — is unaffected by the client no longer being mounted); the frontend does not attempt to update state on the unmounted component (no console error, no orphaned modal); and the next time `/app/portfolio` or `/app/invest` fetches data, the displayed cash balance, holdings, and transaction history reflect that request's actual outcome. Given the user reopens the confirm modal for a new attempt after navigating away mid-request, when the new attempt is submitted, then it is sent as an independent `POST /portfolio/invest` call — the earlier in-flight request is never resubmitted or duplicated.
 - [x] **AC32**: Given any component under `/app/invest`, when its source is inspected, then every monetary value is rendered exclusively through `formatMoney`, with no `parseFloat`/`Number()` conversion applied to a monetary string field (mirrors spec 004 AC30).
-- [x] **AC33**: Given the `/app/invest` page, when rendered, then it displays the platform-wide "Modo Simulador" badge and a visible disclaimer that all investments are simulated and no real money is involved.
+- [x] **AC33**: Given the `/app/invest` page, when rendered, then it displays the platform-wide "Simulator mode" badge and a visible disclaimer that all investments are simulated and no real money is involved.
 - [x] **AC34**: Given an unauthenticated visitor requests `/app/invest`, when Next.js middleware processes the request, then it redirects to `/login`, using spec 002 AC39's existing session-hint-cookie check (no new middleware logic is introduced by this spec).
 
 ## 4. Technical Contracts
@@ -327,7 +327,7 @@ already pinned there: `Holding` unique on (`portfolioId`, `symbol`);
   shapes as-is.
 - Notifications, emails, or receipts for a completed investment.
 - Native/mobile clients — web only.
-- Non-`es` locale copy for this page (per spec 001's precedent).
+- Non-`en` locale copy for this page (per spec 001's precedent).
 
 ## 7. Implementation Notes
 

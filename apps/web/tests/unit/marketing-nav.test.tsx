@@ -6,30 +6,30 @@ describe("MarketingNav", () => {
   it("renders the required nav structure (AC24): logo, links, auth CTAs", () => {
     render(<MarketingNav />);
 
-    const nav = screen.getByRole("navigation", { name: "Principal" });
+    const nav = screen.getByRole("navigation", { name: "Primary" });
     expect(nav).toBeInTheDocument();
 
     expect(screen.getAllByRole("link", { name: /CapitalFlow/i })[0]).toHaveAttribute(
       "href",
       "/",
     );
-    expect(screen.getAllByRole("link", { name: "Cómo funciona" })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "How it works" })[0]).toHaveAttribute(
       "href",
       "/how-it-works",
     );
-    expect(screen.getAllByRole("link", { name: "Precios" })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "Pricing" })[0]).toHaveAttribute(
       "href",
       "/pricing",
     );
-    expect(screen.getAllByRole("link", { name: "Nosotros" })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "About" })[0]).toHaveAttribute(
       "href",
       "/about",
     );
     expect(
-      screen.getAllByRole("link", { name: "Iniciar sesión" })[0],
+      screen.getAllByRole("link", { name: "Log in" })[0],
     ).toHaveAttribute("href", "/login");
     expect(
-      screen.getAllByRole("link", { name: "Registrarse" })[0],
+      screen.getAllByRole("link", { name: "Sign up" })[0],
     ).toHaveAttribute("href", "/register");
   });
 

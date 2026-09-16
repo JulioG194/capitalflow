@@ -5,19 +5,20 @@ import { SITE_URL } from "@/lib/site-config";
 describe("buildPageMetadata", () => {
   it("produces title, description, canonical, Open Graph, and Twitter fields (AC9, AC10, AC15)", () => {
     const metadata = buildPageMetadata({
-      title: "Cómo funciona",
-      description: "Descripción de prueba",
+      title: "How it works",
+      description: "Test description",
       path: "/how-it-works",
     });
 
-    expect(metadata.title).toBe("Cómo funciona");
-    expect(metadata.description).toBe("Descripción de prueba");
+    expect(metadata.title).toBe("How it works");
+    expect(metadata.description).toBe("Test description");
     expect(metadata.alternates?.canonical).toBe(`${SITE_URL}/how-it-works`);
 
-    expect(metadata.openGraph?.title).toBe("Cómo funciona");
-    expect(metadata.openGraph?.description).toBe("Descripción de prueba");
+    expect(metadata.openGraph?.title).toBe("How it works");
+    expect(metadata.openGraph?.description).toBe("Test description");
     expect(metadata.openGraph).toHaveProperty("url", `${SITE_URL}/how-it-works`);
     expect(metadata.openGraph).toHaveProperty("type", "website");
+    expect(metadata.openGraph).toHaveProperty("locale", "en_US");
     expect(metadata.openGraph?.images).toBeTruthy();
 
     // `twitter` is a discriminated union in Next's Metadata type; narrow via
@@ -27,18 +28,18 @@ describe("buildPageMetadata", () => {
       "summary_large_image",
     );
     expect(twitter && "title" in twitter ? twitter.title : undefined).toBe(
-      "Cómo funciona",
+      "How it works",
     );
   });
 
   it("produces distinct canonical URLs per path", () => {
     const home = buildPageMetadata({
-      title: "Inicio",
+      title: "Home",
       description: "d",
       path: "/",
     });
     const pricing = buildPageMetadata({
-      title: "Precios",
+      title: "Pricing",
       description: "d",
       path: "/pricing",
     });

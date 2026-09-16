@@ -18,11 +18,11 @@ function fillForm({
   email = "ada@example.com",
   password = "correcthorse1",
 }: { name?: string; email?: string; password?: string } = {}) {
-  fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: name } });
-  fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: name } });
+  fireEvent.change(screen.getByLabelText("Email"), {
     target: { value: email },
   });
-  fireEvent.change(screen.getByLabelText("Contraseña"), {
+  fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: password },
   });
 }
@@ -36,13 +36,12 @@ describe("RegisterForm", () => {
     render(<RegisterForm />);
     fillForm({ password: "short" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
-    // The raw zod message is English; translateFieldError renders the
-    // Spanish equivalent (spec 001's `es` locale convention).
+    // Zod messages from shared-types are shown as-is (English, spec 001).
     await waitFor(() => {
       expect(
-        screen.getByText("La contraseña debe tener al menos 10 caracteres."),
+        screen.getByText("Password must be at least 10 characters"),
       ).toBeInTheDocument();
     });
     expect(registerRequest).not.toHaveBeenCalled();
@@ -58,7 +57,7 @@ describe("RegisterForm", () => {
 
     render(<RegisterForm />);
     fillForm();
-    fireEvent.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => {
       expect(registerRequest).toHaveBeenCalledWith({
@@ -79,11 +78,11 @@ describe("RegisterForm", () => {
 
     render(<RegisterForm />);
     fillForm();
-    fireEvent.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => {
       expect(
-        screen.getByText("Ya existe una cuenta con este correo electrónico."),
+        screen.getByText("An account with this email already exists."),
       ).toBeInTheDocument();
     });
   });

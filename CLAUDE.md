@@ -7,7 +7,7 @@ investment decisions **without risking real money**.
 > **CRITICAL CONTEXT: this is a SIMULATOR, not a real-money investment product.**
 > No real funds are held, transferred, or invested. All balances, transactions,
 > and returns are simulated. The UI, landing copy, README, and Terms of Service
-> must make this clear at all times. A persistent "Modo Simulador" badge is shown
+> must make this clear at all times. A persistent "Simulator mode" badge is shown
 > in the authenticated app.
 
 ## Purpose
@@ -92,8 +92,8 @@ reference the spec: `feat(landing): AC1-AC7 content structure (spec 001)`.
 
 ### Simulator transparency (non-negotiable)
 - README states "educational simulator" in the first paragraph.
-- Landing pages explicitly state "Simulador de inversiones con fines educativos".
-- Platform shows a persistent "Modo Simulador" badge in the nav.
+- Landing pages explicitly state "Educational investment simulator".
+- Platform shows a persistent "Simulator mode" badge in the nav.
 - Terms of Service state no real money is involved.
 - No copy anywhere promises "guaranteed returns" or "profits".
 

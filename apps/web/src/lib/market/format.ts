@@ -34,7 +34,7 @@ export function formatUpdatedAt(timestamp: string): string {
   if (Number.isNaN(date.getTime())) {
     return "--";
   }
-  return new Intl.DateTimeFormat("es-ES", {
+  return new Intl.DateTimeFormat("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

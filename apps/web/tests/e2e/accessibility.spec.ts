@@ -46,7 +46,7 @@ test.describe("Landmarks (AC20)", () => {
   for (const route of MARKETING_ROUTES) {
     test(`${route} has nav, main, and footer landmarks`, async ({ page }) => {
       await page.goto(route);
-      await expect(page.locator("nav[aria-label='Principal']")).toHaveCount(1);
+      await expect(page.locator("nav[aria-label='Primary']")).toHaveCount(1);
       await expect(page.locator("main")).toHaveCount(1);
       await expect(page.locator("footer")).toHaveCount(1);
     });

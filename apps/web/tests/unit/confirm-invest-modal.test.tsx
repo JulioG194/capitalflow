@@ -44,10 +44,10 @@ describe("ConfirmInvestModal", () => {
 
     expect(screen.getByText("AAPL")).toBeInTheDocument();
     expect(screen.getByText("$250.50")).toBeInTheDocument();
-    expect(screen.getByText(/no se mueve dinero real/)).toBeInTheDocument();
+    expect(screen.getByText(/no real money moves/)).toBeInTheDocument();
   });
 
-  it("AC26: disables the Confirmar button for the duration of the request", async () => {
+  it("AC26: disables the Confirm button for the duration of the request", async () => {
     let resolveInvest: (value: PortfolioSummaryDto) => void = () => {};
     vi.mocked(investInPortfolio).mockReturnValue(
       new Promise<PortfolioSummaryDto>((resolve) => {
@@ -59,18 +59,18 @@ describe("ConfirmInvestModal", () => {
       <ConfirmInvestModal symbol="AAPL" amount="100.00" onClose={vi.fn()} onInvested={vi.fn()} />,
     );
 
-    const confirmButton = screen.getByRole("button", { name: "Confirmar" });
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
     fireEvent.click(confirmButton);
 
-    expect(screen.getByRole("button", { name: "Confirmando…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirming…" })).toBeDisabled();
     expect(investInPortfolio).toHaveBeenCalledTimes(1);
 
     // A second click while still submitting must not fire a second request.
-    fireEvent.click(screen.getByRole("button", { name: "Confirmando…" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirming…" }));
     expect(investInPortfolio).toHaveBeenCalledTimes(1);
 
     resolveInvest(summary());
-    await screen.findByText("Inversión simulada realizada");
+    await screen.findByText("Simulated investment placed");
   });
 
   it("AC28: on INSUFFICIENT_FUNDS, stays open, shows an insufficient-funds message, and keeps the amount", async () => {
@@ -83,10 +83,10 @@ describe("ConfirmInvestModal", () => {
       <ConfirmInvestModal symbol="AAPL" amount="100.00" onClose={onClose} onInvested={vi.fn()} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No tienes suficiente efectivo simulado",
+      "You don't have enough simulated cash",
     );
     expect(screen.getByText("$100.00")).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
@@ -101,9 +101,9 @@ describe("ConfirmInvestModal", () => {
       <ConfirmInvestModal symbol="TSLA" amount="50.00" onClose={vi.fn()} onInvested={vi.fn()} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Inténtalo de nuevo");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Please try again");
     expect(screen.getByText("TSLA")).toBeInTheDocument();
     expect(screen.getByText("$50.00")).toBeInTheDocument();
   });
@@ -117,11 +117,11 @@ describe("ConfirmInvestModal", () => {
       <ConfirmInvestModal symbol="AAPL" amount="100.00" onClose={vi.fn()} onInvested={vi.fn()} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("demasiados intentos");
-    expect(alert).toHaveTextContent("42 segundos");
+    expect(alert).toHaveTextContent("Too many investment attempts");
+    expect(alert).toHaveTextContent("42 seconds");
   });
 
   it("AC31: does not update state (no error thrown) after unmounting mid-request", async () => {
@@ -136,7 +136,7 @@ describe("ConfirmInvestModal", () => {
       <ConfirmInvestModal symbol="AAPL" amount="100.00" onClose={vi.fn()} onInvested={vi.fn()} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     expect(investInPortfolio).toHaveBeenCalledTimes(1);
 
     unmount();

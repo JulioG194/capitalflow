@@ -1,24 +1,24 @@
 import type { AssetClass, TransactionStatus, TransactionType } from "@capitalflow/shared-types";
 
-/** Spanish display labels for `AssetClass` (spec 001 precedent: no non-`es` copy). */
+/** English display labels for `AssetClass` (spec 001: default `en` locale). */
 export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
-  equity: "Acciones",
+  equity: "Equities",
   etf: "ETF",
-  crypto: "Cripto",
-  cash: "Efectivo",
-  other: "Otro",
+  crypto: "Crypto",
+  cash: "Cash",
+  other: "Other",
 };
 
-/** Spanish display labels for `TransactionType`. */
+/** English display labels for `TransactionType`. */
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
-  buy: "Compra",
-  sell: "Venta",
-  deposit: "Depósito",
+  buy: "Buy",
+  sell: "Sell",
+  deposit: "Deposit",
 };
 
-/** Spanish display labels for `TransactionStatus`. */
+/** English display labels for `TransactionStatus`. */
 export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
-  pending: "Pendiente",
-  completed: "Completada",
-  failed: "Fallida",
+  pending: "Pending",
+  completed: "Completed",
+  failed: "Failed",
 };

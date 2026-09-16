@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PortfolioModule } from './modules/portfolio/portfolio.module';
     RedisModule,
     AuthModule,
     PortfolioModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

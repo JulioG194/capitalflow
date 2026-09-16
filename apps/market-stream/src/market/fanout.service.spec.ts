@@ -34,11 +34,16 @@ describe('FanoutService (AC15/AC16/AC21/AC22/AC23)', () => {
   let emitted: QuoteDto[];
   let fanout: FanoutService;
   let cache: QuoteCacheService;
+  // Kept as its own `jest.Mock`-typed reference (rather than read back via
+  // `cache.writeQuote`) so assertions on it don't extract an unbound class
+  // method from `cache` (`@typescript-eslint/unbound-method`).
+  let writeQuote: jest.Mock;
 
   beforeEach(() => {
     now = 1_000_000;
     emitted = [];
-    cache = cacheStub();
+    writeQuote = jest.fn().mockResolvedValue(undefined);
+    cache = cacheStub({ writeQuote });
     fanout = new FanoutService(configStub(), cache);
     fanout.setClock(() => now);
     fanout.setPublisher((_symbol, quote) => {
@@ -78,20 +83,24 @@ describe('FanoutService (AC15/AC16/AC21/AC22/AC23)', () => {
   });
 
   it('AC16/AC17: overflow drops oldest ticks and still emits the newest', async () => {
-    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
     fanout.ingestTick('AAPL', 1, now);
     fanout.ingestTick('AAPL', 2, now);
     fanout.ingestTick('AAPL', 3, now);
     fanout.ingestTick('AAPL', 4, now);
     expect(warn).toHaveBeenCalled();
-    expect(String(warn.mock.calls[0]?.[0])).toMatch(/Dropped \d+ queued ticks for AAPL at /);
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(
+      /Dropped \d+ queued ticks for AAPL at /,
+    );
     await fanout.flush();
     expect(emitted[0]?.price).toBe('4.00');
     warn.mockRestore();
   });
 
   it('AC15: still emits live ticks when Redis writes fail', async () => {
-    (cache.writeQuote as jest.Mock).mockRejectedValue(new Error('ECONNREFUSED'));
+    writeQuote.mockRejectedValue(new Error('ECONNREFUSED'));
     fanout.ingestTick('AAPL', 10, now);
     await fanout.flush();
     expect(emitted).toHaveLength(1);
@@ -134,7 +143,7 @@ describe('FanoutService (AC15/AC16/AC21/AC22/AC23)', () => {
       },
       '191.75',
     );
-    expect(cache.writeQuote).toHaveBeenCalled();
+    expect(writeQuote).toHaveBeenCalled();
     expect(fanout.getLastQuote('AAPL')?.price).toBe('190.50');
 
     now += 5000;

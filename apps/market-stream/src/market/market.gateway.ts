@@ -1,8 +1,4 @@
-import {
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -13,13 +9,17 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import type { DefaultEventsMap } from 'socket.io';
 import { Server, Socket } from 'socket.io';
 import {
   subscribePayloadSchema,
   type MarketErrorEvent,
   type QuoteDto,
 } from '@capitalflow/shared-types';
-import { SocketAuthService } from '../auth/socket-auth.service';
+import {
+  SocketAuthService,
+  type AccessTokenPayload,
+} from '../auth/socket-auth.service';
 import { FinnhubService } from '../finnhub/finnhub.service';
 import {
   FinnhubQuoteClient,
@@ -34,6 +34,19 @@ import { toQuoteDto } from './quote.util';
 function symbolRoom(symbol: string): string {
   return `symbol:${symbol}`;
 }
+
+/**
+ * Handshake-set socket data (see `afterInit` below) — typing this here,
+ * rather than leaving `Socket`'s default `SocketData = any`, is what lets
+ * `socket.data.user = payload` type-check without an unsafe member access.
+ */
+type MarketSocketData = { user: AccessTokenPayload };
+type MarketServer = Server<
+  DefaultEventsMap,
+  DefaultEventsMap,
+  DefaultEventsMap,
+  MarketSocketData
+>;
 
 /**
  * Socket.io `/market` namespace (spec 003 section 4). Auth is handshake-only
@@ -53,7 +66,7 @@ export class MarketGateway
     OnModuleDestroy
 {
   @WebSocketServer()
-  server!: Server;
+  server!: MarketServer;
 
   private readonly logger = new Logger(MarketGateway.name);
   private readonly unsubscribers: Array<() => void> = [];
@@ -89,7 +102,7 @@ export class MarketGateway
     }
   }
 
-  afterInit(server: Server): void {
+  afterInit(server: MarketServer): void {
     server.use((socket, next) => {
       const token = (socket.handshake.auth as { token?: unknown }).token;
       const payload = this.auth.verifyHandshakeToken(token);

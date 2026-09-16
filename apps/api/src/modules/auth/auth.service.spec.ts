@@ -13,7 +13,12 @@ jest.mock('argon2', () => {
   const actual = jest.requireActual<typeof import('argon2')>('argon2');
   return { ...actual, verify: jest.fn(actual.verify) };
 });
-import { AuthService, INITIAL_CASH_BALANCE } from './auth.service';
+import {
+  AuthService,
+  INITIAL_CASH_BALANCE,
+  GENERIC_PASSWORD_RESET_MESSAGE,
+  DEV_PASSWORD_RESET_MESSAGE,
+} from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email/email.service';
 import { EmailAlreadyExistsException } from '../../common/exceptions/email-already-exists.exception';
@@ -167,8 +172,13 @@ describe('AuthService', () => {
     Promise<void>,
     [{ to: string; resetLink: string }]
   >;
+  // Spec 006 AC27/AC28: mutable so individual tests can flip environments
+  // without re-creating the whole testing module; `ConfigService.get`'s
+  // mock below reads this by closure at call time, not at module-build time.
+  let nodeEnv: 'development' | 'test' | 'production' = 'production';
 
   beforeEach(async () => {
+    nodeEnv = 'production';
     prisma = {
       user: {
         findUnique: jest.fn<
@@ -260,6 +270,7 @@ describe('AuthService', () => {
               if (key === 'JWT_REFRESH_TTL_DAYS') return 7;
               if (key === 'PASSWORD_RESET_TTL_MINUTES') return 30;
               if (key === 'WEB_APP_ORIGIN') return 'http://localhost:3000';
+              if (key === 'NODE_ENV') return nodeEnv;
               return undefined;
             }),
           },
@@ -645,14 +656,12 @@ describe('AuthService', () => {
       updatedAt: new Date(),
     };
 
-    it('AC20: persists a hashed reset token and emails the reset link when the user exists', async () => {
+    it('AC20/spec 006 AC27: persists a hashed reset token and emails the reset link when the user exists', async () => {
       prisma.user.findUnique.mockResolvedValue(userRecord);
 
       const result = await service.forgotPassword('User@Example.com');
 
-      expect(result).toEqual({
-        message: 'If that email exists, a password reset link has been sent.',
-      });
+      expect(result).toEqual({ message: GENERIC_PASSWORD_RESET_MESSAGE });
       expect(prisma.passwordResetToken.create).toHaveBeenCalledTimes(1);
       const [createCall] = prisma.passwordResetToken.create.mock.calls[0];
       expect(createCall.data.userId).toBe(userRecord.id);
@@ -672,11 +681,55 @@ describe('AuthService', () => {
 
       const result = await service.forgotPassword('nobody@example.com');
 
-      expect(result).toEqual({
-        message: 'If that email exists, a password reset link has been sent.',
-      });
+      expect(result).toEqual({ message: GENERIC_PASSWORD_RESET_MESSAGE });
       expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
       expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('spec 006 AC27: still logs/emails via EmailService in production (log format itself is covered by email.service.spec.ts)', async () => {
+      nodeEnv = 'production';
+      prisma.user.findUnique.mockResolvedValue(userRecord);
+
+      await service.forgotPassword(userRecord.email);
+
+      expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('spec 006 AC28: in non-production, echoes the minted resetLink and the dev-mode message for a real user', async () => {
+      nodeEnv = 'development';
+      prisma.user.findUnique.mockResolvedValue(userRecord);
+
+      const result = await service.forgotPassword(userRecord.email);
+
+      expect(result.message).toBe(DEV_PASSWORD_RESET_MESSAGE);
+      expect(result.resetLink).toMatch(
+        /^http:\/\/localhost:3000\/reset-password\?token=/,
+      );
+      // The echoed link must be the exact same one that was emailed, not a
+      // second independently-generated token.
+      const [emailCall] = sendPasswordResetEmail.mock.calls[0];
+      expect(result.resetLink).toBe(emailCall.resetLink);
+    });
+
+    it('spec 006 AC28: in non-production, never fabricates a resetLink for an unknown email (anti-enumeration)', async () => {
+      nodeEnv = 'development';
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.forgotPassword('nobody@example.com');
+
+      expect(result).toEqual({ message: GENERIC_PASSWORD_RESET_MESSAGE });
+      expect(result.resetLink).toBeUndefined();
+      expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('spec 006 AC28: production response never includes resetLink even for a real user', async () => {
+      nodeEnv = 'production';
+      prisma.user.findUnique.mockResolvedValue(userRecord);
+
+      const result = await service.forgotPassword(userRecord.email);
+
+      expect(result).toEqual({ message: GENERIC_PASSWORD_RESET_MESSAGE });
+      expect(result.resetLink).toBeUndefined();
     });
   });
 

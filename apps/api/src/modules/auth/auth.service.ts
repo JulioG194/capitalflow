@@ -41,6 +41,26 @@ interface IssuedRefreshToken {
 export const GENERIC_PASSWORD_RESET_MESSAGE =
   'If that email exists, a password reset link has been sent.';
 
+/**
+ * Spec 006 AC28: dev-mode-only message, returned instead of
+ * `GENERIC_PASSWORD_RESET_MESSAGE` when a real reset link was minted and
+ * `NODE_ENV !== "production"` — there is no real email provider, so this is
+ * how a local/dev caller recovers the link without reading server logs.
+ */
+export const DEV_PASSWORD_RESET_MESSAGE = 'Development mode: link not emailed';
+
+export interface ForgotPasswordResult {
+  message: string;
+  /**
+   * Only ever present outside production, and only when `email` matched a
+   * real user (a fresh token was actually minted for it) — never fabricated
+   * for an unknown email, which would leak account existence through the
+   * response body instead of through timing (see AC9's analogous concern
+   * for login).
+   */
+  resetLink?: string;
+}
+
 /** Spec 004 AC1: one-time simulated cash grant on registration. */
 export const INITIAL_CASH_BALANCE = '10000.00';
 
@@ -222,17 +242,28 @@ export class AuthService {
 
   /**
    * AC20/AC21: generates and persists (hashed) a single-use reset token
-   * and emails it, but only if the email matches a real user. Always
-   * returns the identical generic message either way, and `EmailService`
-   * is never invoked for a non-existent email (AC21) — there's no
-   * timing-safety requirement here (unlike AC9 for login), so no dummy
-   * work is performed on the not-found branch.
+   * and emails it, but only if the email matches a real user. In
+   * production, always returns the identical generic message either way,
+   * and `EmailService` is never invoked for a non-existent email (AC21) —
+   * there's no timing-safety requirement here (unlike AC9 for login), so no
+   * dummy work is performed on the not-found branch.
+   *
+   * Spec 006 AC27/AC28: `EmailService` (the `ConsoleEmailAdapter`) still
+   * logs the link via Nest `Logger` unconditionally — that's the only
+   * retrieval path in production. Outside production, this method
+   * *additionally* echoes the same link back in the response body so a
+   * local caller doesn't have to read logs; that echo only ever happens
+   * when `user` was found and a real token was minted above, never
+   * fabricated for an unknown email (which would leak account existence
+   * through response content instead of response timing).
    */
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async forgotPassword(email: string): Promise<ForgotPasswordResult> {
     const normalizedEmail = email.toLowerCase();
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
+
+    let mintedResetLink: string | undefined;
 
     if (user) {
       const rawToken = generateRawToken();
@@ -252,10 +283,21 @@ export class AuthService {
       const webAppOrigin = this.config.get('WEB_APP_ORIGIN', {
         infer: true,
       });
+      mintedResetLink = `${webAppOrigin}/reset-password?token=${rawToken}`;
       await this.emailService.sendPasswordResetEmail({
         to: user.email,
-        resetLink: `${webAppOrigin}/reset-password?token=${rawToken}`,
+        resetLink: mintedResetLink,
       });
+    }
+
+    const isProduction =
+      this.config.get('NODE_ENV', { infer: true }) === 'production';
+
+    if (!isProduction && mintedResetLink) {
+      return {
+        message: DEV_PASSWORD_RESET_MESSAGE,
+        resetLink: mintedResetLink,
+      };
     }
 
     return { message: GENERIC_PASSWORD_RESET_MESSAGE };

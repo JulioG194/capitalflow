@@ -28,7 +28,7 @@ import {
   readRefreshCookie,
   SESSION_HINT_COOKIE_VALUE,
 } from './auth.cookies';
-import { AuthService } from './auth.service';
+import { AuthService, type ForgotPasswordResult } from './auth.service';
 import {
   RefreshTokenGuard,
   type RequestWithRefreshToken,
@@ -184,13 +184,18 @@ export class AuthController {
     return {};
   }
 
-  /** AC20/AC21: always the same generic response shape either way. */
+  /**
+   * AC20/AC21: in production, always the same generic response shape
+   * either way. Spec 006 AC27/AC28: outside production, `AuthService`
+   * additionally echoes `resetLink` in the body (never fabricated for an
+   * unknown email) since there is no real email provider in this project.
+   */
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   forgotPassword(
     @Body(new ZodValidationPipe(forgotPasswordBodySchema))
     body: ForgotPasswordDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ForgotPasswordResult> {
     return this.authService.forgotPassword(body.email);
   }
 

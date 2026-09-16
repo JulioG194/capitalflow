@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
 import { MarketIoAdapter } from './market/market-io.adapter';
+import { JsonLoggerService } from './logging/json-logger.service';
 
 /**
  * Spec 006 edge case ("JWT key mismatch across services"): logs a short,
@@ -26,7 +27,15 @@ function logJwtPublicKeyFingerprint(publicKey: string): void {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Spec 006 AC33: `bufferLogs: true` holds every log emitted during
+  // `NestFactory.create()` itself in memory instead of writing it with the
+  // default `ConsoleLogger` — `app.useLogger(...)` below flushes that
+  // buffer through `JsonLoggerService` once it's registered, so even
+  // those very first boot lines (and, further down, the JWT public-key
+  // fingerprint log) come out as structured JSON.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(JsonLoggerService));
+
   const config = app.get(AppConfigService);
   const origin = config.get('WEB_APP_ORIGIN');
 

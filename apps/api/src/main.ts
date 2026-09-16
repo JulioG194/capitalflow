@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { isOriginAllowed } from '@capitalflow/shared-types';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { JsonLoggerService } from './common/logging/json-logger.service';
 import type { EnvConfig } from './config/env.schema';
 
 /**
@@ -18,7 +19,16 @@ type CorsOriginFn = (
 ) => void;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Spec 006 AC33: `bufferLogs: true` holds every log emitted during
+  // `NestFactory.create()` itself (Nest's own "Starting Nest
+  // application...", module-initialization lines, etc.) in memory instead
+  // of writing them with the default `ConsoleLogger` — `app.useLogger(...)`
+  // below flushes that buffer through `JsonLoggerService` once it's
+  // registered, so even those very first boot lines come out as
+  // structured JSON rather than being lost or logged in the wrong format.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(JsonLoggerService));
+
   const configService = app.get(ConfigService<EnvConfig, true>);
 
   // Credentialed cross-origin requests (the refresh cookie, sent via

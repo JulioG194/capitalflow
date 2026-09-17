@@ -5,6 +5,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# pnpm content-addressable store accidentally created inside the repo
+# (never commit — use the global store; this folder can be multi‑GB)
+.pnpm-store/
+
 # Env
 .env
 .env.local
@@ -12,6 +16,12 @@ pnpm-debug.log*
 .env.development
 .env.test
 .env.production
+
+# Secrets / local key material (JWT RSA keys, etc.)
+*.pem
+*.b64
+private.pem
+public.pem
 
 # Next.js
 .next/
@@ -24,6 +34,7 @@ dist/
 # Prisma
 apps/api/prisma/*.db
 apps/api/prisma/migrations/dev.db
+apps/api/generated/
 
 # Turborepo
 .turbo/
@@ -32,6 +43,15 @@ apps/api/prisma/migrations/dev.db
 dist/
 build/
 coverage/
+*.tsbuildinfo
+
+# Accidental tsc emits (keep sources only)
+apps/api/prisma.config.js
+apps/api/prisma.config.d.ts
+apps/api/prisma.config.js.map
+packages/shared-types/src/**/*.js
+packages/shared-types/src/**/*.d.ts
+packages/shared-types/src/**/*.js.map
 
 # Editor / OS
 .DS_Store

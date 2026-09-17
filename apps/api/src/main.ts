@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { isOriginAllowed } from '@capitalflow/shared-types';
@@ -27,14 +28,16 @@ async function bootstrap() {
   // below flushes that buffer through `JsonLoggerService` once it's
   // registered, so even those very first boot lines come out as
   // structured JSON rather than being lost or logged in the wrong format.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
   app.useLogger(app.get(JsonLoggerService));
 
   // Render (and any reverse proxy) terminates TLS and forwards the client
   // IP in X-Forwarded-For. Without this, ThrottlerGuard's default IP
   // tracker keys every login against the proxy hop and either rate-limits
   // the whole world as one client or never sees the real caller.
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  app.set('trust proxy', 1);
 
   app.use(
     helmet({

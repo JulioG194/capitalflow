@@ -22,7 +22,5 @@
     "paths": {
       "@capitalflow/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+  }
 }

@@ -31,28 +31,21 @@ export const REFRESH_COOKIE_PATH = '/auth';
 
 /**
  * Resolves the `SameSite` attribute shared by every auth cookie this module
- * sets/clears (spec 006 AC9).
+ * sets/clears (spec 006 AC9, corrected for same-origin proxy).
  *
- * `apps/web` (Vercel) and `apps/api` (Render) are deployed to entirely
- * different registrable domains/sites in production — NOT same-site
- * subdomains as an earlier draft of this comment assumed — so a `Lax` (or
- * `Strict`) cookie would never be attached to `apps/web`'s cross-site
- * `fetch(..., { credentials: "include" })` calls at all. Cross-site
- * credentialed cookies require `SameSite=None`, which in turn requires
- * `Secure` (browsers reject `SameSite=None` without `Secure`).
+ * Production topology: the browser talks only to `apps/web` (Vercel). Auth
+ * and portfolio HTTP go through Next.js rewrites (`API_UPSTREAM_URL`) so
+ * `Set-Cookie` is host-only on `*.vercel.app`. From the browser's point of
+ * view those requests are same-site, so `SameSite=Lax` + `Secure` is
+ * correct — and it closes the CSRF hole that `SameSite=None` would open
+ * for credentialed POSTs to `/auth/refresh` and `/auth/logout`.
  *
  * In development/test, `apps/web` and `apps/api` run on plain HTTP
  * (`localhost:3000` / `localhost:3001`), where `Secure` cookies are
- * silently dropped by the browser entirely — so dev/test uses `Lax` over
- * plain HTTP instead, which is still sent on `apps/web`'s same-site (both
- * `localhost`) cross-origin fetches.
+ * silently dropped by the browser — so dev/test uses `Lax` over plain HTTP.
  */
-function resolveSameSite(
-  config: ConfigService<EnvConfig, true>,
-): 'none' | 'lax' {
-  return config.get('NODE_ENV', { infer: true }) === 'production'
-    ? 'none'
-    : 'lax';
+function resolveSameSite(): 'lax' {
+  return 'lax';
 }
 
 /**
@@ -60,7 +53,7 @@ function resolveSameSite(
  * call that sets/clears the refresh-token cookie (spec 002 AC6, AC33; spec
  * 006 AC9). `Secure` is only enabled in production because local HTTP dev
  * servers can't set a `Secure` cookie at all (the browser silently drops
- * it), and `Secure` is mandatory whenever `SameSite=None` is used.
+ * it).
  */
 export function buildRefreshCookieOptions(
   config: ConfigService<EnvConfig, true>,
@@ -71,7 +64,7 @@ export function buildRefreshCookieOptions(
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: resolveSameSite(config),
+    sameSite: resolveSameSite(),
     path: REFRESH_COOKIE_PATH,
     maxAge: refreshTtlDays * 24 * 60 * 60 * 1000,
   };
@@ -86,7 +79,7 @@ export function buildClearRefreshCookieOptions(
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: resolveSameSite(config),
+    sameSite: resolveSameSite(),
     path: REFRESH_COOKIE_PATH,
   };
 }
@@ -135,7 +128,7 @@ export function buildSessionHintCookieOptions(
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: resolveSameSite(config),
+    sameSite: resolveSameSite(),
     path: '/',
     maxAge: refreshTtlDays * 24 * 60 * 60 * 1000,
   };
@@ -150,7 +143,7 @@ export function buildClearSessionHintCookieOptions(
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: resolveSameSite(config),
+    sameSite: resolveSameSite(),
     path: '/',
   };
 }

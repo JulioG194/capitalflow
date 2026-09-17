@@ -34,7 +34,7 @@ cross-site cookies, and TLS. No custom domain — free subdomains only.
 ### CORS & cross-site cookies
 - [ ] **AC7**: `apps/api` global CORS allows the exact origins `http://localhost:3000` (dev), the Vercel production URL, AND Vercel preview URLs (regex `https://capitalflow-*.vercel.app`).
 - [ ] **AC8**: CORS `credentials: true` is set on the API to allow cookies to be sent.
-- [ ] **AC9**: The refresh-token cookie is set with `SameSite=None; Secure; HttpOnly; Path=/auth`. In development, `SameSite=Lax` is used with a separate branch.
+- [ ] **AC9**: The refresh-token cookie is set with `SameSite=Lax; Secure; HttpOnly; Path=/auth` in production. Browser traffic reaches the API via same-origin Next.js rewrites on Vercel (`API_UPSTREAM_URL`), so cookies are host-only on `*.vercel.app` (not cross-site to Render). In development, `SameSite=Lax` is used without `Secure` over plain HTTP.
 - [ ] **AC10**: Socket.io in `apps/market-stream` accepts connections from the same origin list as the API.
 - [ ] **AC11**: Frontend fetches from `apps/api` include `credentials: "include"`, and Socket.io client uses `withCredentials: true`.
 
@@ -284,17 +284,23 @@ app.enableCors({
 });
 ```
 
-### Cookie config for cross-site
+### Cookie config (same-origin via Vercel rewrites)
 ```ts
-// apps/api/src/modules/auth/auth.service.ts (refresh cookie set)
-res.cookie("refresh_token", token, {
+// apps/api/src/modules/auth/auth.cookies.ts (refresh cookie set)
+res.cookie("cf_refresh_token", token, {
   httpOnly: true,
-  secure: true,
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
   path: "/auth",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
 ```
+
+`apps/web` sets `API_UPSTREAM_URL` (server-only) and leaves
+`NEXT_PUBLIC_API_URL` empty in production so the browser calls
+`/auth/*` on the Vercel origin; `next.config.ts` rewrites those paths to
+Render. That keeps cookies same-site and avoids the middleware miss when
+the session-hint cookie was previously set on `*.onrender.com`.
 
 ## 5. Edge Cases & Errors
 

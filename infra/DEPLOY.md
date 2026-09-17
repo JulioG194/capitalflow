@@ -101,14 +101,18 @@ AC19 / spec 003 section 7) — it verifies tokens, never signs them.
      the build environment will drift from local/CI and can hit the same
      `undici`/`jsdom` Node-version incompatibility that Node 20 did.
 4. Environment Variables (Production + Preview):
-   - `NEXT_PUBLIC_API_URL` — `https://capitalflow-api.onrender.com`
+   - `NEXT_PUBLIC_API_URL` — **leave empty / unset** (same-origin rewrites).
+   - `API_UPSTREAM_URL` — `https://capitalflow-api.onrender.com` (server-only;
+     used by `apps/web/next.config.ts` rewrites so auth cookies are set on
+     the Vercel host, not on Render).
    - `NEXT_PUBLIC_MARKET_STREAM_URL` — `https://capitalflow-stream.onrender.com`
 5. Deploy. Vercel auto-deploys `main` to production and every PR to a
    preview URL (AC13) — no further config needed.
 6. Once you have the real Vercel URL, go back to Render and update
    `WEB_APP_ORIGIN` on both `capitalflow-api` and `capitalflow-stream` if it
    differs from `https://capitalflow.vercel.app` (Vercel appends a suffix
-   when that name is taken).
+   when that name is taken). Also pin **Node.js Version → 22.x** under
+   Settings > General (match `.nvmrc` / CI).
 
 ## 5. First deploy order
 

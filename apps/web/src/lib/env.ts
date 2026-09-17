@@ -1,20 +1,37 @@
 /**
- * Client-safe environment configuration. `NEXT_PUBLIC_API_URL` is inlined at
+ * Client-safe environment configuration. `NEXT_PUBLIC_*` vars are inlined at
  * build time by Next.js, so this is readable from both Server and Client
  * Components. Mirrors the pattern already used by `lib/site-config.ts`.
+ *
+ * Production (Vercel): leave `NEXT_PUBLIC_API_URL` unset/empty and set
+ * server-only `API_UPSTREAM_URL` to the Render API. Browser fetches hit
+ * same-origin `/auth`, `/portfolio`, `/health`; `next.config.ts` rewrites
+ * them upstream so auth cookies land on the Vercel host (spec 006 cookie
+ * fix). Local dev: `NEXT_PUBLIC_API_URL=http://localhost:3001` (direct).
  */
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
-  "http://localhost:3001";
+function normalizeBaseUrl(value: string | undefined, fallback: string): string {
+  if (value === undefined || value.trim() === "") {
+    return fallback;
+  }
+  return value.replace(/\/$/, "");
+}
+
+/**
+ * Empty string in production (same-origin via rewrites). Non-empty absolute
+ * URL in local/dev when talking to Nest directly.
+ */
+export const API_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_API_URL,
+  process.env.NODE_ENV === "production" ? "" : "http://localhost:3001",
+);
 
 /**
  * Base URL of `apps/market-stream`'s Socket.io server (spec 003 section 4).
- * Browser-visible like `API_URL` above. Placeholder default port (3002) —
- * `apps/market-stream`'s own bootstrap still defaults to the unmodified Nest
- * skeleton's port 3000, which would collide with `apps/web`'s dev server;
- * this fallback assumes that gets resolved once the backend spec lands.
+ * Remains a cross-origin WSS URL in production — socket auth is the Bearer
+ * access token in the handshake, not cookies.
  */
-export const MARKET_STREAM_URL =
-  process.env.NEXT_PUBLIC_MARKET_STREAM_URL?.replace(/\/$/, "") ??
-  "http://localhost:3002";
+export const MARKET_STREAM_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_MARKET_STREAM_URL,
+  "http://localhost:3002",
+);

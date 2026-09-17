@@ -21,10 +21,10 @@ function fakeConfig(
 
 describe('auth cookie builders (spec 006 AC9)', () => {
   describe('buildRefreshCookieOptions', () => {
-    it('uses SameSite=None + Secure in production (cross-site: Vercel <-> Render)', () => {
+    it('uses SameSite=Lax + Secure in production (same-origin via Next rewrites)', () => {
       const options = buildRefreshCookieOptions(fakeConfig('production'));
 
-      expect(options.sameSite).toBe('none');
+      expect(options.sameSite).toBe('lax');
       expect(options.secure).toBe(true);
       expect(options.httpOnly).toBe(true);
       expect(options.path).toBe('/auth');
@@ -49,7 +49,7 @@ describe('auth cookie builders (spec 006 AC9)', () => {
     it('matches the SameSite/Secure attributes used to set the cookie, in production', () => {
       const options = buildClearRefreshCookieOptions(fakeConfig('production'));
 
-      expect(options.sameSite).toBe('none');
+      expect(options.sameSite).toBe('lax');
       expect(options.secure).toBe(true);
       expect(options.path).toBe('/auth');
     });
@@ -65,7 +65,7 @@ describe('auth cookie builders (spec 006 AC9)', () => {
   describe('buildSessionHintCookieOptions', () => {
     it('follows the same SameSite/Secure split as the refresh cookie, but keeps Path=/', () => {
       const prod = buildSessionHintCookieOptions(fakeConfig('production'));
-      expect(prod.sameSite).toBe('none');
+      expect(prod.sameSite).toBe('lax');
       expect(prod.secure).toBe(true);
       expect(prod.path).toBe('/');
 
@@ -79,7 +79,7 @@ describe('auth cookie builders (spec 006 AC9)', () => {
   describe('buildClearSessionHintCookieOptions', () => {
     it('follows the same SameSite/Secure split as the refresh cookie, but keeps Path=/', () => {
       const prod = buildClearSessionHintCookieOptions(fakeConfig('production'));
-      expect(prod.sameSite).toBe('none');
+      expect(prod.sameSite).toBe('lax');
       expect(prod.secure).toBe(true);
       expect(prod.path).toBe('/');
 

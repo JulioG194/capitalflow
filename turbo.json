@@ -7,7 +7,15 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": [
+        "API_UPSTREAM_URL",
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_MARKET_STREAM_URL",
+        "VERCEL",
+        "VERCEL_ENV",
+        "VERCEL_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^build"]

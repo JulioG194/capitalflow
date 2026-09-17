@@ -94,7 +94,10 @@ AC19 / spec 003 section 7) — it verifies tokens, never signs them.
 3. Project Settings:
    - **Root Directory**: `apps/web`
    - **Install Command**: `cd ../.. && pnpm install --frozen-lockfile`
-   - **Build Command**: `cd ../.. && pnpm --filter @capitalflow/shared-types build && pnpm --filter web build`
+   - **Build Command**: `cd ../.. && pnpm turbo run build --filter=web`
+     (or the Vercel Turborepo preset). `API_UPSTREAM_URL` must be listed in
+     root `turbo.json` `tasks.build.env` or Turbo strips it and Next ships
+     with empty rewrites.
    - **Output Directory**: leave default
    - **Node.js Version**: set to **22.x** under Settings > General. There is
      no `vercel.json` or `engines` field in `apps/web/package.json` pinning

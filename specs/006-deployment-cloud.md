@@ -42,7 +42,7 @@ cross-site cookies, and TLS. No custom domain — free subdomains only.
 - [ ] **AC12**: On push to any branch, GitHub Actions runs: `pnpm typecheck`, `pnpm lint`, `pnpm test`. All must pass before merge to `main`.
 - [ ] **AC13**: Vercel auto-deploys `main` to production and every PR to a preview URL.
 - [ ] **AC14**: Render auto-deploys `main` on push. `render.yaml` at repo root declares both services as a Blueprint.
-- [ ] **AC15**: Database migrations run automatically on `apps/api` deploy via a `preDeployCommand` in `render.yaml`: `pnpm --filter api exec prisma migrate deploy`.
+- [ ] **AC15**: Database migrations run automatically on `apps/api` start via `startCommand` in `render.yaml` (free tier has no `preDeployCommand`): `pnpm --filter api exec prisma migrate deploy && pnpm --filter api start:prod`.
 - [ ] **AC16**: A keep-alive workflow in GitHub Actions pings `apps/api/health` and `apps/market-stream/health` every 10 minutes during "portfolio-active" hours (default: enabled — can be toggled by disabling the workflow).
 
 ### Configuration & secrets
@@ -134,8 +134,7 @@ services:
     region: oregon
     plan: free
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build
-    startCommand: pnpm --filter api start:prod
-    preDeployCommand: pnpm --filter api exec prisma migrate deploy
+    startCommand: pnpm --filter api exec prisma migrate deploy && pnpm --filter api start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

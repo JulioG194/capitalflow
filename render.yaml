@@ -21,9 +21,10 @@ services:
     runtime: node
     region: oregon
     plan: free
+    # Free tier has no preDeployCommand — run migrations on start before the
+    # Nest process binds the port (Render health checks wait for listen).
     buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build
-    startCommand: pnpm --filter api start:prod
-    preDeployCommand: pnpm --filter api exec prisma migrate deploy
+    startCommand: pnpm --filter api exec prisma migrate deploy && pnpm --filter api start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION

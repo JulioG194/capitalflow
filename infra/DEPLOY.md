@@ -63,8 +63,9 @@ access.
    - `JWT_ACCESS_PUBLIC_KEY` — the *same* public key as capitalflow-api.
    - `FINNHUB_API_KEY` — from your Finnhub dashboard (free tier).
 6. Trigger a manual deploy on both services once their env vars are set.
-   Watch the logs; `preDeployCommand` on `capitalflow-api` runs
-   `pnpm --filter api exec prisma migrate deploy` before the new instance starts.
+   Watch the logs; `capitalflow-api`'s `startCommand` runs
+   `pnpm --filter api exec prisma migrate deploy` before Nest starts (free
+   tier does not support `preDeployCommand`).
 7. Verify both are up:
    ```
    curl -i https://capitalflow-api.onrender.com/health

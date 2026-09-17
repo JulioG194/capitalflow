@@ -13,6 +13,7 @@ import type { DefaultEventsMap } from 'socket.io';
 import { Server, Socket } from 'socket.io';
 import {
   subscribePayloadSchema,
+  type ChartHistoryEvent,
   type MarketErrorEvent,
   type QuoteDto,
 } from '@capitalflow/shared-types';
@@ -163,6 +164,7 @@ export class MarketGateway
       this.syncUpstream();
     }
     await this.emitCachedQuote(client, symbol);
+    await this.emitChartHistory(client, symbol);
   }
 
   @SubscribeMessage('unsubscribe')
@@ -188,6 +190,21 @@ export class MarketGateway
 
   private syncUpstream(): void {
     this.finnhub.setDesiredSymbols(this.registry.watchedSymbols());
+  }
+
+  private async emitChartHistory(
+    client: Socket,
+    symbol: string,
+  ): Promise<void> {
+    const points = await this.cache.readHistory(symbol);
+    const windowMs = 24 * 60 * 60 * 1000;
+    const oldest = points[0] ? Date.parse(points[0].timestamp) : NaN;
+    const partialWindow =
+      points.length === 0 ||
+      !Number.isFinite(oldest) ||
+      Date.now() - oldest < windowMs - 60_000;
+    const event: ChartHistoryEvent = { symbol, points, partialWindow };
+    client.emit('chart:history', event);
   }
 
   private async emitCachedQuote(client: Socket, symbol: string): Promise<void> {

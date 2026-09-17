@@ -115,4 +115,38 @@ export class QuoteCacheService implements OnModuleDestroy {
       );
     }
   }
+
+  /**
+   * Rolling 24h price points for the market chart (spec 003 AC30/AC31).
+   * Self-accumulated from live ticks only — never backfilled from Finnhub.
+   */
+  async readHistory(
+    symbol: string,
+  ): Promise<Array<{ timestamp: string; price: string }>> {
+    const cutoff = Date.now() - HISTORY_WINDOW_MS;
+    try {
+      const raw = await this.client.zrangebyscore(
+        historyKey(symbol),
+        cutoff,
+        '+inf',
+      );
+      this.redisDown = false;
+      const points: Array<{ timestamp: string; price: string }> = [];
+      for (const entry of raw) {
+        const sep = entry.indexOf(':');
+        if (sep <= 0) continue;
+        const at = Number(entry.slice(0, sep));
+        const price = entry.slice(sep + 1);
+        if (!Number.isFinite(at) || !price) continue;
+        points.push({ timestamp: new Date(at).toISOString(), price });
+      }
+      return points;
+    } catch (error) {
+      this.redisDown = true;
+      this.logger.error(
+        `Redis history read failed for ${symbol}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+      return [];
+    }
+  }
 }

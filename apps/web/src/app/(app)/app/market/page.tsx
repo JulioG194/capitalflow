@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { MarketDelayDisclaimer } from "@/components/market/MarketDelayDisclaimer";
 import { MarketTicker } from "@/components/market/MarketTicker";
 import { MarketIndexCards } from "@/components/market/MarketIndexCards";
+import { MarketChart } from "@/components/market/MarketChart";
+import { MarketFeaturedTable } from "@/components/market/MarketFeaturedTable";
+import { MarketConnectionBanner } from "@/components/market/MarketConnectionBanner";
 
 // Not indexable (robots.ts disallows /app/*, spec 001 AC12) — a minimal
 // title is enough, no OG/canonical boilerplate needed here.
@@ -18,10 +21,6 @@ export const metadata: Metadata = {
  * first `quote:update` arrives. The "Simulator mode" badge is already
  * rendered unconditionally by `<AppNav>` in the shared `(app)/app/layout.tsx`
  * (CLAUDE.md: one badge instance, not reimplemented per page).
- *
- * The chart, featured table, and connection banner sections land in
- * follow-up spec-003 commits (blocks 2-4); this shell only mounts the
- * sections implemented so far (ticker, index cards).
  */
 export default function MarketPage() {
   return (
@@ -29,6 +28,7 @@ export default function MarketPage() {
       <header className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold tracking-tight text-ink">Market</h1>
         <MarketDelayDisclaimer />
+        <MarketConnectionBanner />
       </header>
 
       <section aria-labelledby="ticker-heading" className="flex flex-col gap-3">
@@ -43,6 +43,20 @@ export default function MarketPage() {
           Indexes and crypto
         </h2>
         <MarketIndexCards />
+      </section>
+
+      <section aria-labelledby="chart-heading" className="flex flex-col gap-3">
+        <h2 id="chart-heading" className="text-lg font-semibold text-ink">
+          Price chart
+        </h2>
+        <MarketChart />
+      </section>
+
+      <section aria-labelledby="table-heading" className="flex flex-col gap-3">
+        <h2 id="table-heading" className="text-lg font-semibold text-ink">
+          Watchlist
+        </h2>
+        <MarketFeaturedTable />
       </section>
     </div>
   );

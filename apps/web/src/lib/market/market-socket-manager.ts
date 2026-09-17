@@ -1,21 +1,22 @@
 import { io, type Socket } from "socket.io-client";
-import type { MarketStatusEvent, QuoteDto } from "@capitalflow/shared-types";
+import type {
+  ChartHistoryEvent,
+  MarketStatusEvent,
+  QuoteDto,
+} from "@capitalflow/shared-types";
 import { MARKET_STREAM_URL } from "@/lib/env";
 
 /**
  * Plain module-level singleton (same pattern as `lib/auth/token-store.ts`):
  * owns the single Socket.io connection to `apps/market-stream`'s `/market`
- * namespace for the whole browser tab (spec 003 section 7: "useMarketSocket
- * should own a single Socket.io client instance per browser tab, shared
- * across all live-updating components on the page"). `useMarketSocket`
- * (the React-facing hook) is a thin wrapper around this module; components
- * never talk to Socket.io directly.
+ * namespace for the whole browser tab (spec 003 section 7).
  */
 
 export type ConnectionStatus = MarketStatusEvent["status"] | "disconnected";
 
 type QuoteListener = (quote: QuoteDto) => void;
 type StatusListener = (status: ConnectionStatus) => void;
+type HistoryListener = (history: ChartHistoryEvent) => void;
 
 let socket: Socket | null = null;
 let currentToken: string | null = null;
@@ -24,6 +25,7 @@ let currentToken: string | null = null;
 const watchCounts = new Map<string, number>();
 /** symbol -> the set of component-level callbacks to notify on update. */
 const quoteListeners = new Map<string, Set<QuoteListener>>();
+const historyListeners = new Map<string, Set<HistoryListener>>();
 const statusListeners = new Set<StatusListener>();
 let lastStatus: ConnectionStatus = "disconnected";
 
@@ -39,11 +41,6 @@ function ensureSocket(token: string): Socket {
     return socket;
   }
 
-  // Token changed (or first connect ever): tear down any prior connection
-  // before opening a new one. Mid-session token refresh on an already-open
-  // socket is explicitly out of scope for spec 003 (section 6/9) — this
-  // branch only exists so a fresh login after a full logout gets a clean
-  // connection, not to support seamless silent-refresh handoff.
   if (socket) {
     socket.disconnect();
   }
@@ -55,10 +52,6 @@ function ensureSocket(token: string): Socket {
 
   instance.on("connect", () => {
     notifyStatus("connected");
-    // AC34: the server's in-memory watch state does not survive a
-    // reconnect/restart, so every symbol this tab still cares about is
-    // re-subscribed on every `connect` (initial connect and every
-    // reconnect alike).
     for (const [symbol, count] of watchCounts) {
       if (count > 0) {
         instance.emit("subscribe", { symbol });
@@ -86,6 +79,14 @@ function ensureSocket(token: string): Socket {
     }
   });
 
+  instance.on("chart:history", (event: ChartHistoryEvent) => {
+    const listeners = historyListeners.get(event.symbol);
+    if (!listeners) return;
+    for (const listener of listeners) {
+      listener(event);
+    }
+  });
+
   socket = instance;
   return instance;
 }
@@ -94,7 +95,6 @@ export function getConnectionStatus(): ConnectionStatus {
   return lastStatus;
 }
 
-/** Notifies `listener` immediately with the current status, then on every change. */
 export function subscribeToStatus(listener: StatusListener): () => void {
   statusListeners.add(listener);
   listener(lastStatus);
@@ -104,15 +104,30 @@ export function subscribeToStatus(listener: StatusListener): () => void {
 }
 
 /**
- * Registers `onUpdate` for `symbol` and increments this tab's watch count
- * for it. Mirrors the server's own refcounting (spec 003 AC2/AC3): an
- * upstream `subscribe` is only emitted the first time a symbol goes from 0
- * to 1 watchers, so sibling components sharing a symbol (e.g. the ticker
- * bar and the featured table both watch AAPL) never double-subscribe, and
- * an `unsubscribe` is only emitted once the last watcher releases it
- * (AC35) — unmounting one such component never drops the symbol out from
- * under a sibling that still needs it.
+ * Registers a chart-history listener for `symbol`. Does not change watch
+ * counts — pair with `subscribeToSymbol` (or `useMarketSocket`) so the
+ * server actually emits `chart:history` after `subscribe`.
  */
+export function subscribeToHistory(
+  token: string,
+  symbol: string,
+  onHistory: HistoryListener,
+): () => void {
+  ensureSocket(token);
+  let listeners = historyListeners.get(symbol);
+  if (!listeners) {
+    listeners = new Set();
+    historyListeners.set(symbol, listeners);
+  }
+  listeners.add(onHistory);
+  return () => {
+    historyListeners.get(symbol)?.delete(onHistory);
+    if ((historyListeners.get(symbol)?.size ?? 0) === 0) {
+      historyListeners.delete(symbol);
+    }
+  };
+}
+
 export function subscribeToSymbol(
   token: string,
   symbol: string,

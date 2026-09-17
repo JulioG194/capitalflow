@@ -84,3 +84,15 @@ export type SubscribePayloadInput = z.infer<typeof subscribePayloadSchema>;
 /** `unsubscribe` shares the exact same shape as `subscribe` (just a symbol). */
 export const unsubscribePayloadSchema = subscribePayloadSchema;
 export type UnsubscribePayloadInput = z.infer<typeof unsubscribePayloadSchema>;
+
+/**
+ * Self-accumulated 24h chart seed pushed after a successful `subscribe`
+ * (spec 003 AC30/AC31). Points come only from live ticks stored in Redis —
+ * never from an external history API.
+ */
+export interface ChartHistoryEvent {
+  symbol: string;
+  points: Array<{ timestamp: string; price: string }>;
+  /** True when the accumulated window is shorter than 24 hours. */
+  partialWindow: boolean;
+}

@@ -8,9 +8,18 @@ import type { NextConfig } from "next";
  *
  * Local dev keeps `NEXT_PUBLIC_API_URL=http://localhost:3001` (direct) —
  * rewrites only apply when `API_UPSTREAM_URL` is set (Vercel Production +
- * Preview).
+ * Preview). On Vercel this is read at **build** time — set the env var,
+ * then Redeploy (Clear cache) or the routes stay as Next 404s.
  */
 const apiUpstream = process.env.API_UPSTREAM_URL?.replace(/\/$/, "");
+
+if (process.env.VERCEL && !apiUpstream) {
+  throw new Error(
+    "API_UPSTREAM_URL is required on Vercel (e.g. https://capitalflow-api.onrender.com). " +
+      "Without it, /auth and /health are not rewritten to Render and return Next 404. " +
+      "Set it under Project → Settings → Environment Variables for Production + Preview, then Redeploy.",
+  );
+}
 
 const nextConfig: NextConfig = {
   async rewrites() {

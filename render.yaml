@@ -8,14 +8,20 @@
 # Env var names below match what apps/api and apps/market-stream actually
 # read (src/config/env.schema.ts in each), not spec 006 section 4's literal
 # JWT_*_BASE64 / WEB_ORIGIN naming — see infra/DEPLOY.md's "Naming note".
+#
+# Build notes:
+# - `corepack enable` + packageManager pin so pnpm is available on Render.
+# - `PNPM_INCLUDE_DEV_DEPS` / `--prod=false` keeps prisma + @nestjs/cli
+#   available during `build` even with NODE_ENV=production (Render sets that
+#   for the runtime env; the build must still compile TypeScript).
 
 services:
   - type: web
     name: capitalflow-api
-    env: node
+    runtime: node
     region: oregon
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build
     startCommand: pnpm --filter api start:prod
     preDeployCommand: pnpm --filter api exec prisma migrate deploy
     healthCheckPath: /health
@@ -44,10 +50,10 @@ services:
 
   - type: web
     name: capitalflow-stream
-    env: node
+    runtime: node
     region: oregon
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter market-stream build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter market-stream build
     startCommand: pnpm --filter market-stream start:prod
     healthCheckPath: /health
     envVars:

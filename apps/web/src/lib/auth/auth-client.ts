@@ -91,12 +91,12 @@ export function updateMe(input: UpdateProfileInput): Promise<UserDto> {
   }).then((res) => parseJsonOrThrow<UserDto>(res));
 }
 
-/** AC20/AC21: always resolves with the API's generic message. */
+/** AC20/AC21 + spec 006 AC28: generic message always; optional resetLink in non-prod. */
 export function forgotPasswordRequest(
   input: ForgotPasswordInput,
-): Promise<{ message: string }> {
+): Promise<{ message: string; resetLink?: string }> {
   return postJson("/auth/forgot-password", input).then((res) =>
-    parseJsonOrThrow<{ message: string }>(res),
+    parseJsonOrThrow<{ message: string; resetLink?: string }>(res),
   );
 }
 

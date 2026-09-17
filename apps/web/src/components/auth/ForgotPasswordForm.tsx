@@ -24,6 +24,7 @@ const SENT_MESSAGE =
 export function ForgotPasswordForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [devResetLink, setDevResetLink] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -32,8 +33,14 @@ export function ForgotPasswordForm() {
 
   async function onSubmit(values: ForgotPasswordInput) {
     setFormError(null);
+    setDevResetLink(null);
     try {
-      await forgotPasswordRequest(values);
+      const result = await forgotPasswordRequest(values);
+      // Spec 006 AC28: non-prod API may echo resetLink — show it for local
+      // demos only. Production never returns this field.
+      if (typeof result.resetLink === "string" && result.resetLink.length > 0) {
+        setDevResetLink(result.resetLink);
+      }
       setSent(true);
     } catch {
       setFormError(GENERIC_ERROR);
@@ -42,9 +49,19 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-        {SENT_MESSAGE}
-      </p>
+      <div className="flex flex-col gap-3">
+        <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {SENT_MESSAGE}
+        </p>
+        {devResetLink ? (
+          <p className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Development mode:{" "}
+            <a href={devResetLink} className="font-medium underline">
+              open reset link
+            </a>
+          </p>
+        ) : null}
+      </div>
     );
   }
 

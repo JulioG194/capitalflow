@@ -1,5 +1,6 @@
 import { API_URL } from "@/lib/env";
 import { getAccessToken, setAccessToken } from "./token-store";
+import { reportApiFailure, reportApiSuccess } from "@/lib/api-health";
 
 /**
  * Base fetch for `/auth/*` endpoints that do NOT go through the
@@ -7,9 +8,26 @@ import { getAccessToken, setAccessToken } from "./token-store";
  * itself, logout, forgot/reset-password). Always sends
  * `credentials: "include"` so the HttpOnly refresh cookie travels with
  * login/refresh/logout requests (spec 002 section 4).
+ *
+ * Also feeds the cold-start banner (spec 006 AC23): network errors and
+ * 502/503 within the first 60s of the session flip the "waking up"
+ * indicator; any successful response clears it.
  */
 export function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(`${API_URL}${path}`, { ...init, credentials: "include" });
+  return fetch(`${API_URL}${path}`, { ...init, credentials: "include" }).then(
+    (response) => {
+      if (response.status === 502 || response.status === 503) {
+        reportApiFailure(response.status);
+      } else {
+        reportApiSuccess();
+      }
+      return response;
+    },
+    (error: unknown) => {
+      reportApiFailure();
+      throw error;
+    },
+  );
 }
 
 let refreshPromise: Promise<boolean> | null = null;

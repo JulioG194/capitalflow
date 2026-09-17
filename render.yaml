@@ -11,9 +11,11 @@
 #
 # Build notes:
 # - `corepack enable` + packageManager pin so pnpm is available on Render.
-# - `PNPM_INCLUDE_DEV_DEPS` / `--prod=false` keeps prisma + @nestjs/cli
-#   available during `build` even with NODE_ENV=production (Render sets that
-#   for the runtime env; the build must still compile TypeScript).
+# - `--prod=false` keeps prisma + @nestjs/cli available during `build` even
+#   with NODE_ENV=production (Render sets that for the runtime env).
+# - Build `@capitalflow/shared-types` to JS before Nest webpack — package
+#   `main` points at `dist/` so runtime `require()` works (source `.ts` does not).
+# - Free tier has no `preDeployCommand`; api runs `prisma migrate deploy` on start.
 
 services:
   - type: web
@@ -23,7 +25,7 @@ services:
     plan: free
     # Free tier has no preDeployCommand — run migrations on start before the
     # Nest process binds the port (Render health checks wait for listen).
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @capitalflow/shared-types build && pnpm --filter api exec prisma generate && pnpm --filter api build
     startCommand: pnpm --filter api exec prisma migrate deploy && pnpm --filter api start:prod
     healthCheckPath: /health
     envVars:
@@ -54,7 +56,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter market-stream build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @capitalflow/shared-types build && pnpm --filter market-stream build
     startCommand: pnpm --filter market-stream start:prod
     healthCheckPath: /health
     envVars:

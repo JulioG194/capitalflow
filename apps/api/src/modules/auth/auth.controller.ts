@@ -189,9 +189,13 @@ export class AuthController {
    * either way. Spec 006 AC27/AC28: outside production, `AuthService`
    * additionally echoes `resetLink` in the body (never fabricated for an
    * unknown email) since there is no real email provider in this project.
+   *
+   * Rate-limited with the same IP throttle as login — forgot-password is
+   * otherwise an easy log/email flood vector.
    */
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   forgotPassword(
     @Body(new ZodValidationPipe(forgotPasswordBodySchema))
     body: ForgotPasswordDto,
